@@ -4,6 +4,7 @@ Handle API authorisation for requesting access tokens to an API.
 import json
 import logging
 import socket
+import sys
 from collections.abc import Callable, Mapping, Sequence, MutableMapping, Awaitable
 from datetime import datetime
 from pathlib import Path
@@ -267,9 +268,17 @@ class APIAuthoriser:
 
         return self.headers
 
-    @staticmethod
-    def _display_message(message: str) -> None:
-        """Display a message to the user."""
+    def _display_message(self, message: str, level: int = logging.INFO) -> None:
+        """Log a message and ensure it is displayed to the user no matter the logger configuration."""
+        self.logger.log(level=level, msg=message)
+
+        # return if message was logged to stdout
+        for handler in self.logger.handlers + list(logging.getHandlerNames()):
+            if isinstance(handler, str):
+                handler = logging.getHandlerByName(handler)
+            if isinstance(handler, logging.StreamHandler) and handler.stream == sys.stdout:
+                return
+
         print(message)
 
     async def _authorise_user(self) -> None:

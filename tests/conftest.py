@@ -1,10 +1,33 @@
+import logging.config
 import os
 import shutil
 from pathlib import Path
 
 import pytest
+import yaml
 from _pytest.fixtures import SubRequest
 from aioresponses import aioresponses
+
+from aiorequests import MODULE_ROOT
+from tests.utils import path_resources
+
+
+# noinspection PyUnusedLocal
+@pytest.hookimpl
+def pytest_configure(config: pytest.Config):
+    """Loads logging config"""
+    config_file = path_resources.joinpath("test_logging").with_suffix(".yml")
+    if not config_file.is_file():
+        return
+
+    with open(config_file, "r", encoding="utf-8") as file:
+        log_config = yaml.full_load(file)
+
+    for formatter in log_config["formatters"].values():  # ensure ANSI colour codes in format are recognised
+        formatter["format"] = formatter["format"].replace(r"\33", "\33")
+
+    log_config["loggers"][MODULE_ROOT] = log_config["loggers"]["test"]
+    logging.config.dictConfig(log_config)
 
 
 @pytest.fixture

@@ -315,7 +315,7 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
     def generate_settings() -> RequestSettings:
         """Randomly generates a :py:class:`RequestSettings` object that can be used to create a repository."""
         cls: type[RequestSettings] = choice(REQUEST_SETTINGS)
-        return cls(name=fake.word())
+        return cls(name="".join(fake.random_letters(20)))
 
     @staticmethod
     @abstractmethod
@@ -358,7 +358,9 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
     async def test_context_management(self, cache: ResponseCache):
         # does not create repository backend resource until awaited or entered
         settings = self.generate_settings()
-        assert settings.name not in cache
+        while settings.name in cache:
+            settings = self.generate_settings()
+
         repository = cache.create_repository(settings)
 
         with pytest.raises(sqlite3.OperationalError):
@@ -367,7 +369,9 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
         await repository.count()
 
         settings = self.generate_settings()
-        assert settings.name not in cache
+        while settings.name in cache:
+            settings = self.generate_settings()
+
         repository = cache.create_repository(settings)
 
         with pytest.raises(sqlite3.OperationalError):
@@ -377,7 +381,8 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
 
     async def test_create_repository(self, cache: ResponseCache):
         settings = self.generate_settings()
-        assert settings.name not in cache
+        while settings.name in cache:
+            settings = self.generate_settings()
 
         # noinspection PyAsyncCall
         cache.create_repository(settings)

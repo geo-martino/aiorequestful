@@ -142,6 +142,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
             f'WHERE "{self.expiry_column}" > ?',
             f'\tAND {'\n\tAND '.join(f'"{key}" = ?' for key in self._primary_key_columns)}',
         ))
+
         async with self.connection.execute(query, (datetime.now().isoformat(), *key)) as cur:
             rows = await cur.fetchone()
         return rows[0] > 0
