@@ -8,7 +8,7 @@ from typing import Self
 
 from yarl import URL
 
-from aiorequests.exception import MethodError
+from aiorequestful.exception import MethodError
 
 type UnitIterable[T] = T | Iterable[T]
 type UnitCollection[T] = T | Collection[T]

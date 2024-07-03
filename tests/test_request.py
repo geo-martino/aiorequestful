@@ -8,14 +8,14 @@ from aiohttp import ClientRequest
 from aioresponses import aioresponses, CallbackResult
 from yarl import URL
 
-from aiorequests.authorise import APIAuthoriser
-from aiorequests.cache.backend.base import ResponseCache
-from aiorequests.cache.backend.sqlite import SQLiteCache
-from aiorequests.cache.response import CachedResponse
-from aiorequests.cache.session import CachedSession
-from aiorequests.exception import RequestError, ResponseError
-from aiorequests.request import RequestHandler
-from aiorequests.types import Method
+from aiorequestful.authorise import APIAuthoriser
+from aiorequestful.cache.backend.base import ResponseCache
+from aiorequestful.cache.backend.sqlite import SQLiteCache
+from aiorequestful.cache.response import CachedResponse
+from aiorequestful.cache.session import CachedSession
+from aiorequestful.exception import RequestError, ResponseError
+from aiorequestful.request import RequestHandler
+from aiorequestful.types import Method
 from tests.cache.backend.utils import MockRequestSettings
 
 

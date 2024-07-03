@@ -70,7 +70,7 @@ instance/
 
 # Sphinx/other documentation
 docs/_build/
-docs/aiorequests*.rst
+docs/aiorequestful*.rst
 .grip/
 
 # PyBuilder

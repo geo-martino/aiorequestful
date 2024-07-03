@@ -53,9 +53,9 @@ What's in this documentation
    :maxdepth: 1
    :caption: 📖 Reference
 
-   aiorequests.cache
-   aiorequests.authorise
-   aiorequests.exception
-   aiorequests.request
+   aiorequestful.cache
+   aiorequestful.authorise
+   aiorequestful.exception
+   aiorequestful.request
 
    genindex

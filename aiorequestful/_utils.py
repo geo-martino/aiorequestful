@@ -3,8 +3,8 @@ from typing import Any
 
 from yarl import URL
 
-from aiorequests.exception import AIORequestsImportError
-from aiorequests.types import UnitIterable
+from aiorequestful.exception import AIORequestsImportError
+from aiorequestful.types import UnitIterable
 
 
 def get_iterator(value: Any) -> Iterator | None:

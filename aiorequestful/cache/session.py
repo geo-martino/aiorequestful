@@ -5,10 +5,10 @@ from typing import Self, Any
 
 from aiohttp import ClientSession, ClientRequest, payload
 
-from aiorequests._utils import format_url_log
-from aiorequests.cache.backend.base import ResponseCache, ResponseRepository
-from aiorequests.cache.response import CachedResponse
-from aiorequests.types import URLInput
+from aiorequestful._utils import format_url_log
+from aiorequestful.cache.backend.base import ResponseCache, ResponseRepository
+from aiorequestful.cache.response import CachedResponse
+from aiorequestful.types import URLInput
 
 ClientSession.__init_subclass__ = lambda *_, **__: _  # WORKAROUND: disables inheritance warning
 

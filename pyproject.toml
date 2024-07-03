@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 dynamic = ["version"]
-name = "aiorequests"
+name = "aiorequestful"
 authors = [
-  { name="George Martin Marino", email="gm.engineer+aiorequests@pm.me" },
+  { name="George Martin Marino", email="gm.engineer+aiorequestful@pm.me" },
 ]
-description = "Asynchronous REST API client framework for asyncio and Python "
+description = "Asynchronous RESTful API requests framework for asyncio and Python"
 readme = "README.md"
 license-files = { paths = ["LICENSE"] }
 requires-python = ">=3.12"
@@ -30,7 +30,7 @@ dependencies = [
 [project.optional-dependencies]
 # optional functionality
 all = [
-    "aiorequests[sqlite]",
+    "aiorequestful[sqlite]",
 ]
 sqlite = [
     "aiosqlite~=0.20",
@@ -42,7 +42,7 @@ build = [
     "versioningit",
 ]
 test = [
-    "aiorequests[all]",
+    "aiorequestful[all]",
     "pytest~=8.2",
     "pytest-asyncio~=0.23",
     "pytest-xdist~=3.6",
@@ -52,7 +52,7 @@ test = [
     "Faker~=0.7",
 ]
 docs = [
-    "aiorequests[build]",
+    "aiorequestful[build]",
     "sphinx~=7.3",
     "renku_sphinx_theme",
     "graphviz~=0.20",
@@ -62,7 +62,7 @@ docs = [
     "matplotlib~=3.9",
 ]
 dev = [
-    "aiorequests[test,docs]",
+    "aiorequestful[test,docs]",
     "flake8",
     "grip",
     "jupyterlab",
@@ -70,11 +70,11 @@ dev = [
 ]
 
 [project.urls]
-"Documentation" = "https://geo-martino.github.io/aiorequests/"
-"Release Notes" = "https://geo-martino.github.io/aiorequests/release-history.html"
-"Contribute" = "https://geo-martino.github.io/aiorequests/contributing.html"
-"Source code" = "https://github.com/geo-martino/aiorequests"
-Issues = "https://github.com/geo-martino/aiorequests/issues"
+"Documentation" = "https://geo-martino.github.io/aiorequestful/"
+"Release Notes" = "https://geo-martino.github.io/aiorequestful/release-history.html"
+"Contribute" = "https://geo-martino.github.io/aiorequestful/contributing.html"
+"Source code" = "https://github.com/geo-martino/aiorequestful"
+Issues = "https://github.com/geo-martino/aiorequestful/issues"
 
 [tool.hatch.version]
 source = "versioningit"
@@ -90,7 +90,7 @@ distance-dirty = "{base_version}"
 #distance-dirty = "{next_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
 
 [tool.hatch.build.targets.sdist]
-include = ["aiorequests"]
+include = ["aiorequestful"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -9,9 +9,9 @@ from typing import Any, Self
 from aiohttp import RequestInfo, ClientRequest, ClientResponse
 from dateutil.relativedelta import relativedelta
 
-from aiorequests._utils import get_iterator
-from aiorequests.exception import CacheError
-from aiorequests.types import UnitCollection, JSON, URLInput
+from aiorequestful._utils import get_iterator
+from aiorequestful.exception import CacheError
+from aiorequestful.types import UnitCollection, JSON, URLInput
 
 type CacheRequestType = RequestInfo | ClientRequest | ClientResponse
 type RepositoryRequestType[K] = K | CacheRequestType

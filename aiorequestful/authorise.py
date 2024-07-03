@@ -15,10 +15,10 @@ from webbrowser import open as webopen
 import aiohttp
 from yarl import URL
 
-from aiorequests import PROGRAM_NAME
-from aiorequests.exception import AuthoriserError
+from aiorequestful import PROGRAM_NAME
+from aiorequestful.exception import AuthoriserError
 
-from aiorequests.types import JSON, Headers, ImmutableJSON, ImmutableHeaders
+from aiorequestful.types import JSON, Headers, ImmutableJSON, ImmutableHeaders
 
 
 class APIAuthoriser:

@@ -5,7 +5,7 @@ on:
     branches: [ master ]
     paths:
       - pyproject.toml
-      - aiorequests/**
+      - aiorequestful/**
       - tests/**
 
   workflow_dispatch:

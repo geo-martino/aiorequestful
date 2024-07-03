@@ -7,7 +7,7 @@ from aiohttp import ClientResponse
 
 
 class AIORequestsError(Exception):
-    """Generic base class for all aiorequests-related errors"""
+    """Generic base class for all aiorequestful-related errors"""
 
 
 class InputError(AIORequestsError, ValueError):

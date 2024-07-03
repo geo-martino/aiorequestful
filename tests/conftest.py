@@ -8,7 +8,7 @@ import yaml
 from _pytest.fixtures import SubRequest
 from aioresponses import aioresponses
 
-from aiorequests import MODULE_ROOT
+from aiorequestful import MODULE_ROOT
 from tests.utils import path_resources
 
 

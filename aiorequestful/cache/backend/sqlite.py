@@ -11,12 +11,12 @@ from typing import Any, Self
 from aiohttp import RequestInfo, ClientRequest, ClientResponse
 from dateutil.relativedelta import relativedelta
 
-from aiorequests import PROGRAM_NAME
-from aiorequests._utils import required_modules_installed
-from aiorequests.cache.backend.base import DEFAULT_EXPIRE, ResponseCache, ResponseRepository, RepositoryRequestType
-from aiorequests.cache.backend.base import RequestSettings
-from aiorequests.exception import CacheError
-from aiorequests.types import URLInput
+from aiorequestful import PROGRAM_NAME
+from aiorequestful._utils import required_modules_installed
+from aiorequestful.cache.backend.base import DEFAULT_EXPIRE, ResponseCache, ResponseRepository, RepositoryRequestType
+from aiorequestful.cache.backend.base import RequestSettings
+from aiorequestful.exception import CacheError
+from aiorequestful.types import URLInput
 
 try:
     import aiosqlite

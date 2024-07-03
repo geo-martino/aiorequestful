@@ -16,13 +16,13 @@ import aiohttp
 from aiohttp import ClientResponse, ClientSession
 from yarl import URL
 
-from aiorequests._utils import format_url_log
-from aiorequests.authorise import APIAuthoriser
-from aiorequests.cache.backend import ResponseCache
-from aiorequests.cache.session import CachedSession
-from aiorequests.exception import RequestError, ResponseError
+from aiorequestful._utils import format_url_log
+from aiorequestful.authorise import APIAuthoriser
+from aiorequestful.cache.backend import ResponseCache
+from aiorequestful.cache.session import CachedSession
+from aiorequestful.exception import RequestError, ResponseError
 
-from aiorequests.types import JSON, URLInput, Headers, MethodInput, Method
+from aiorequestful.types import JSON, URLInput, Headers, MethodInput, Method
 
 
 class RequestHandler:

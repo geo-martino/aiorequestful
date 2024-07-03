@@ -1,4 +1,4 @@
-from aiorequests._utils import get_iterator
+from aiorequestful._utils import get_iterator
 
 
 # noinspection PyTypeChecker

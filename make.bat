@@ -9,7 +9,7 @@ if "%SPHINXBUILD%" == "" (
 )
 set SOURCEDIR=docs
 set BUILDDIR=docs/_build
-set PROJECTNAME=aiorequests
+set PROJECTNAME=aiorequestful
 
 %SPHINXBUILD% >NUL 2>NUL
 if errorlevel 9009 (

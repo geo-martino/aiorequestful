@@ -5,8 +5,8 @@ import pytest
 from aioresponses import aioresponses
 from faker import Faker
 
-from aiorequests.cache.backend.base import ResponseCache
-from aiorequests.cache.session import CachedSession
+from aiorequestful.cache.backend.base import ResponseCache
+from aiorequestful.cache.session import CachedSession
 from tests.cache.backend.test_sqlite import TestSQLiteCache as SQLiteCacheTester
 from tests.cache.backend.testers import ResponseCacheTester
 from tests.cache.backend.utils import MockRequestSettings

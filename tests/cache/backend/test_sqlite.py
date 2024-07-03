@@ -13,9 +13,9 @@ from aiohttp import ClientRequest, ClientResponse, ClientSession
 from faker import Faker
 from yarl import URL
 
-from aiorequests.cache.backend.base import RequestSettings
-from aiorequests.cache.backend.sqlite import SQLiteTable, SQLiteCache
-from aiorequests.cache.response import CachedResponse
+from aiorequestful.cache.backend.base import RequestSettings
+from aiorequestful.cache.backend.sqlite import SQLiteTable, SQLiteCache
+from aiorequestful.cache.response import CachedResponse
 from tests.cache.backend.testers import ResponseRepositoryTester, ResponseCacheTester, BaseResponseTester
 from tests.cache.backend.utils import MockPaginatedRequestSettings
 
