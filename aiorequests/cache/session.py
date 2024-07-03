@@ -9,7 +9,6 @@ from aiorequests._utils import format_url_log
 from aiorequests.cache.backend.base import ResponseCache, ResponseRepository
 from aiorequests.cache.response import CachedResponse
 from aiorequests.types import URLInput
-from musify.logger import MusifyLogger
 
 ClientSession.__init_subclass__ = lambda *_, **__: _  # WORKAROUND: disables inheritance warning
 
@@ -26,9 +25,8 @@ class CachedSession(ClientSession):
     def __init__(self, cache: ResponseCache, **kwargs):
         super().__init__(**kwargs)
 
-        # noinspection PyTypeChecker
-        #: The :py:class:`MusifyLogger` for this  object
-        self.logger: MusifyLogger = logging.getLogger(__name__)
+        #: The :py:class:`logging.Logger` for this  object
+        self.logger: logging.Logger = logging.getLogger(__name__)
 
         #: The cache to use when attempting to return a cached response.
         self.cache = cache

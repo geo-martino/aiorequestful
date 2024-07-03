@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from abc import ABCMeta, abstractmethod
 from collections.abc import MutableMapping, Callable, Collection, AsyncIterable, Mapping
@@ -10,7 +11,6 @@ from dateutil.relativedelta import relativedelta
 
 from aiorequests._utils import get_iterator
 from aiorequests.exception import CacheError
-from musify.logger import MusifyLogger
 from aiorequests.types import UnitCollection, JSON, URLInput
 
 type CacheRequestType = RequestInfo | ClientRequest | ClientResponse
@@ -81,9 +81,8 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         raise NotImplementedError
 
     def __init__(self, settings: RequestSettings, expire: timedelta | relativedelta = DEFAULT_EXPIRE):
-        # noinspection PyTypeChecker
-        #: The :py:class:`MusifyLogger` for this  object
-        self.logger: MusifyLogger = logging.getLogger(__name__)
+        #: The :py:class:`logging.Logger` for this  object
+        self.logger: logging.Logger = logging.getLogger(__name__)
 
         self.settings = settings
         self._expire = expire
@@ -155,8 +154,8 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         Get the responses relating to the given ``requests`` from this repository if they exist.
         Returns results unordered.
         """
-        bar = self.logger.get_asynchronous_iterator(map(self.get_response, requests), disable=True)
-        return list(filter(lambda result: result is not None, await bar))
+        tasks = asyncio.gather(*map(self.get_response, requests))
+        return list(filter(lambda result: result is not None, await tasks))
 
     async def save_response(self, response: Collection[K, V] | ClientResponse) -> None:
         """Save the given ``response`` to this repository if a key can be extracted from it. Safely fail if not"""
@@ -180,12 +179,11 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         Safely fail on those that can't.
         """
         if isinstance(responses, Mapping):
-            await self.logger.get_asynchronous_iterator(
-                (self._set_item_from_key_value_pair(key, value) for key, value in responses.items()), disable=True
-            )
-            return
+            tasks = (self._set_item_from_key_value_pair(key, value) for key, value in responses.items())
+        else:
+            tasks = map(self.save_response, responses)
 
-        await self.logger.get_asynchronous_iterator(map(self.save_response, responses), disable=True)
+        await asyncio.gather(*tasks)
 
     @abstractmethod
     async def delete_response(self, request: RepositoryRequestType[K]) -> bool:
@@ -200,8 +198,8 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         Delete the given ``requests`` from this repository if they exist.
         Returns the number of the given ``requests`` deleted in the repository.
         """
-        bar = self.logger.get_asynchronous_iterator(map(self.delete_response, requests), disable=True)
-        return sum(await bar)
+        tasks = asyncio.gather(*map(self.delete_response, requests))
+        return sum(await tasks)
 
 
 class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=ABCMeta):

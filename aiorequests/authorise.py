@@ -16,7 +16,6 @@ from yarl import URL
 
 from aiorequests import PROGRAM_NAME
 from aiorequests.exception import AuthoriserError
-from musify.logger import MusifyLogger
 
 from aiorequests.types import JSON, Headers, ImmutableJSON, ImmutableHeaders
 
@@ -147,9 +146,8 @@ class APIAuthoriser:
         header_prefix: str | None = "Bearer ",
         header_extra: ImmutableHeaders | None = None,
     ):
-        # noinspection PyTypeChecker
-        #: The :py:class:`MusifyLogger` for this  object
-        self.logger: MusifyLogger = logging.getLogger(__name__)
+        #: The :py:class:`logging.Logger` for this  object
+        self.logger: logging.Logger = logging.getLogger(__name__)
         self.name = name
 
         # maps of requests parameters to be passed to `requests` functions
@@ -269,6 +267,11 @@ class APIAuthoriser:
 
         return self.headers
 
+    @staticmethod
+    def _display_message(message: str) -> None:
+        """Display a message to the user."""
+        print(message)
+
     async def _authorise_user(self) -> None:
         """
         Get user authentication code by authorising through user's browser.
@@ -278,7 +281,7 @@ class APIAuthoriser:
         if not self.user_args or (self.auth_args and self.auth_args.get("data", {}).get("code")):
             return
 
-        self.logger.info_extra("Authorising user privilege access...")
+        self.logger.debug("Authorising user privilege access...")
 
         # set up socket to listen for the redirect from
         socket_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -286,11 +289,11 @@ class APIAuthoriser:
         socket_listener.settimeout(120)
         socket_listener.listen(1)
 
-        self.logger.print_message(
+        self._display_message(
             f"\33[1mOpening {self.name} in your browser. "
             f"Log in to {self.name}, authorise, and return here after \33[0m"
         )
-        self.logger.print_message(f"\33[1mWaiting for code, timeout in {socket_listener.timeout} seconds... \33[0m")
+        self._display_message(f"\33[1mWaiting for code, timeout in {socket_listener.timeout} seconds... \33[0m")
 
         # add redirect URI to auth_args and user_args
         redirect_uri = f"http://{self._user_auth_socket_address}:{self._user_auth_socket_port}/"
@@ -303,7 +306,7 @@ class APIAuthoriser:
         request, _ = socket_listener.accept()
 
         request.send(f"Code received! You may now close this window and return to {PROGRAM_NAME}...".encode("utf-8"))
-        self.logger.print_message("\33[92;1mCode received!\33[0m")
+        self._display_message("\33[92;1mCode received!\33[0m")
         socket_listener.close()
 
         # format out the access code from the returned response

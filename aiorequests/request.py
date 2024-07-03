@@ -21,7 +21,6 @@ from aiorequests.authorise import APIAuthoriser
 from aiorequests.cache.backend import ResponseCache
 from aiorequests.cache.session import CachedSession
 from aiorequests.exception import RequestError, ResponseError
-from musify.logger import MusifyLogger
 
 from aiorequests.types import JSON, URLInput, Headers, MethodInput, Method
 
@@ -88,9 +87,8 @@ class RequestHandler:
         return cls(connector=connector, authoriser=authoriser)
 
     def __init__(self, connector: Callable[[], ClientSession], authoriser: APIAuthoriser | None = None):
-        # noinspection PyTypeChecker
-        #: The :py:class:`MusifyLogger` for this  object
-        self.logger: MusifyLogger = logging.getLogger(__name__)
+        #: The :py:class:`logging.Logger` for this  object
+        self.logger: logging.Logger = logging.getLogger(__name__)
 
         self._connector = connector
         self._session: ClientSession | CachedSession | None = None
@@ -258,7 +256,7 @@ class RequestHandler:
         if self._backoff_start_logged:
             return
 
-        self.logger.info_extra(
+        self.logger.warning(
             "\33[93mRequest failed: retrying using backoff strategy. "
             f"Will retry request {self.backoff_count} more times and timeout in {self.timeout} seconds...\33[0m"
         )
@@ -329,7 +327,7 @@ class RequestHandler:
             )
 
         if not self._wait_start_logged:
-            self.logger.info_extra(f"\33[93mRate limit exceeded. Retrying again at {wait_str}\33[0m")
+            self.logger.warning(f"\33[93mRate limit exceeded. Retrying again at {wait_str}\33[0m")
             self._wait_start_logged = True
 
         await asyncio.sleep(wait_time)
