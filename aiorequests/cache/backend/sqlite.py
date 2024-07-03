@@ -117,7 +117,6 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
             return request  # `request` is the key
 
         key = self.settings.get_key(request.url)
-        print(key)
         if any(part is None for part in key):
             return
 
@@ -143,7 +142,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
             f'WHERE "{self.expiry_column}" > ?',
             f'\tAND {'\n\tAND '.join(f'"{key}" = ?' for key in self._primary_key_columns)}',
         ))
-        print(query, key)
+
         async with self.connection.execute(query, (datetime.now().isoformat(), *key)) as cur:
             rows = await cur.fetchone()
         return rows[0] > 0
@@ -182,8 +181,6 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
             f'\tAND {'\n\tAND '.join(f'"{key}" = ?' for key in self._primary_key_columns)}',
         ))
 
-        print(query, key)
-
         async with self.connection.execute(query, (datetime.now().isoformat(), *key)) as cur:
             row = await cur.fetchone()
 
@@ -212,8 +209,6 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
             self.expire.isoformat(),
             self.serialize(__value)
         )
-
-        print(query, params)
 
         await self.connection.execute(query, params)
 
