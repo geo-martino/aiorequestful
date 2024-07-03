@@ -4,8 +4,8 @@ from typing import Any
 import pytest
 from aioresponses import aioresponses
 
-from aioapiclient.cache.backend.base import ResponseCache
-from aioapiclient.cache.session import CachedSession
+from aiorequests.cache.backend.base import ResponseCache
+from aiorequests.cache.session import CachedSession
 from tests.cache.backend.test_sqlite import TestSQLiteCache as SQLiteCacheTester
 from tests.cache.backend.testers import ResponseCacheTester
 from tests.cache.backend.utils import MockRequestSettings

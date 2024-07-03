@@ -14,8 +14,8 @@ from webbrowser import open as webopen
 import aiohttp
 from yarl import URL
 
-from aioapiclient import PROGRAM_NAME
-from aioapiclient.exception import APIError
+from aiorequests import PROGRAM_NAME
+from aiorequests.exception import APIError
 from musify.logger import MusifyLogger
 
 

@@ -8,13 +8,13 @@ from aiohttp import ClientRequest
 from aioresponses import aioresponses, CallbackResult
 from yarl import URL
 
-from aioapiclient.authorise import APIAuthoriser
-from aioapiclient.cache.backend.base import ResponseCache
-from aioapiclient.cache.backend.sqlite import SQLiteCache
-from aioapiclient.cache.response import CachedResponse
-from aioapiclient.cache.session import CachedSession
-from aioapiclient.exception import APIError, RequestError
-from aioapiclient.request import RequestHandler
+from aiorequests.authorise import APIAuthoriser
+from aiorequests.cache.backend.base import ResponseCache
+from aiorequests.cache.backend.sqlite import SQLiteCache
+from aiorequests.cache.response import CachedResponse
+from aiorequests.cache.session import CachedSession
+from aiorequests.exception import APIError, RequestError
+from aiorequests.request import RequestHandler
 from tests.cache.backend.utils import MockRequestSettings
 
 

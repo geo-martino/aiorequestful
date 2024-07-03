@@ -12,10 +12,10 @@ from aiohttp import RequestInfo, ClientRequest, ClientResponse
 from dateutil.relativedelta import relativedelta
 from yarl import URL
 
-from aioapiclient import PROGRAM_NAME
-from aioapiclient.cache.backend.base import DEFAULT_EXPIRE, ResponseCache, ResponseRepository, RepositoryRequestType
-from aioapiclient.cache.backend.base import RequestSettings
-from aioapiclient.exception import CacheError
+from aiorequests import PROGRAM_NAME
+from aiorequests.cache.backend.base import DEFAULT_EXPIRE, ResponseCache, ResponseRepository, RepositoryRequestType
+from aiorequests.cache.backend.base import RequestSettings
+from aiorequests.exception import CacheError
 from musify.utils import required_modules_installed
 
 try:

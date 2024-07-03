@@ -2,7 +2,7 @@ from typing import Any
 
 from yarl import URL
 
-from aioapiclient.cache.backend.base import RequestSettings
+from aiorequests.cache.backend.base import RequestSettings
 
 
 class MockRequestSettings(RequestSettings):
