@@ -371,6 +371,7 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
         settings = self.generate_settings()
         while settings.name in cache:
             settings = self.generate_settings()
+
         repository = cache.create_repository(settings)
 
         with pytest.raises(sqlite3.OperationalError):
