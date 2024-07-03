@@ -4,9 +4,9 @@ build-backend = "hatchling.build"
 
 [project]
 dynamic = ["version"]
-name = "aiorestapi"
+name = "aiorequests"
 authors = [
-  { name="George Martin Marino", email="gm.engineer+aiorestapi@pm.me" },
+  { name="George Martin Marino", email="gm.engineer+aiorequests@pm.me" },
 ]
 description = "Asynchronous REST API client framework for asyncio and Python "
 readme = "README.md"
@@ -30,7 +30,7 @@ dependencies = [
 [project.optional-dependencies]
 # optional functionality
 all = [
-    "aiorestapi[sqlite]",
+    "aiorequests[sqlite]",
 ]
 sqlite = [
     "aiosqlite~=0.20",
@@ -42,7 +42,7 @@ build = [
     "versioningit",
 ]
 test = [
-    "aiorestapi[all]",
+    "aiorequests[all]",
     "pytest~=8.2",
     "pytest-asyncio~=0.23",
     "pytest-xdist~=3.6",
@@ -51,7 +51,7 @@ test = [
     "pyyaml~=6.0",
 ]
 docs = [
-    "aiorestapi[build]",
+    "aiorequests[build]",
     "sphinx~=7.3",
     "renku_sphinx_theme",
     "graphviz~=0.20",
@@ -61,7 +61,7 @@ docs = [
     "matplotlib~=3.9",
 ]
 dev = [
-    "aiorestapi[test,docs]",
+    "aiorequests[test,docs]",
     "flake8",
     "grip",
     "jupyterlab",
@@ -69,11 +69,11 @@ dev = [
 ]
 
 [project.urls]
-"Documentation" = "https://geo-martino.github.io/aiorestapi/"
-"Release Notes" = "https://geo-martino.github.io/aiorestapi/release-history.html"
-"Contribute" = "https://geo-martino.github.io/aiorestapi/contributing.html"
-"Source code" = "https://github.com/geo-martino/aiorestapi"
-Issues = "https://github.com/geo-martino/aiorestapi/issues"
+"Documentation" = "https://geo-martino.github.io/aiorequests/"
+"Release Notes" = "https://geo-martino.github.io/aiorequests/release-history.html"
+"Contribute" = "https://geo-martino.github.io/aiorequests/contributing.html"
+"Source code" = "https://github.com/geo-martino/aiorequests"
+Issues = "https://github.com/geo-martino/aiorequests/issues"
 
 [tool.hatch.version]
 source = "versioningit"
@@ -89,7 +89,7 @@ distance-dirty = "{base_version}"
 #distance-dirty = "{next_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
 
 [tool.hatch.build.targets.sdist]
-include = ["aiorestapi"]
+include = ["aiorequests"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
