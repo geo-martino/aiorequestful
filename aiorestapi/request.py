@@ -15,11 +15,11 @@ import aiohttp
 from aiohttp import ClientResponse, ClientSession
 from yarl import URL
 
-from musify.api._utils import format_url_log
-from musify.api.authorise import APIAuthoriser
-from musify.api.cache.backend import ResponseCache
-from musify.api.cache.session import CachedSession
-from musify.api.exception import APIError, RequestError
+from aiorestapi._utils import format_url_log
+from aiorestapi.authorise import APIAuthoriser
+from aiorestapi.cache.backend import ResponseCache
+from aiorestapi.cache.session import CachedSession
+from aiorestapi.exception import APIError, RequestError
 from musify.logger import MusifyLogger
 from musify.utils import clean_kwargs
 

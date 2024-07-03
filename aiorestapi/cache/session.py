@@ -6,9 +6,9 @@ from typing import Self, Any
 from aiohttp import ClientSession, ClientRequest, payload
 from yarl import URL
 
-from musify.api._utils import format_url_log
-from musify.api.cache.backend.base import ResponseCache, ResponseRepository
-from musify.api.cache.response import CachedResponse
+from aiorestapi._utils import format_url_log
+from aiorestapi.cache.backend.base import ResponseCache, ResponseRepository
+from aiorestapi.cache.response import CachedResponse
 from musify.logger import MusifyLogger
 
 ClientSession.__init_subclass__ = lambda *_, **__: _  # WORKAROUND: disables inheritance warning

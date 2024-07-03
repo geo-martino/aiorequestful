@@ -3,12 +3,10 @@ Exceptions relating to API operations.
 """
 from aiohttp import ClientResponse
 
-from musify.exception import MusifyError
 
-
-class APIError(MusifyError):
+class APIError(Exception):
     """
-    Exception raised for API errors.
+    Exception raised for generic API errors.
 
     :param message: Explanation of the error.
     :param response: The :py:class:`ClientResponse` related to the error.
@@ -22,6 +20,10 @@ class APIError(MusifyError):
 
 
 class RequestError(APIError):
+    """Exception raised for errors relating to requests to an API."""
+
+
+class ResponseError(APIError):
     """Exception raised for errors relating to requests to an API."""
 
 

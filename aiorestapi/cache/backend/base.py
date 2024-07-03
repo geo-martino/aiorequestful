@@ -9,7 +9,7 @@ from aiohttp import RequestInfo, ClientRequest, ClientResponse
 from dateutil.relativedelta import relativedelta
 from yarl import URL
 
-from musify.api.exception import CacheError
+from aiorestapi.exception import CacheError
 from musify.logger import MusifyLogger
 from musify.types import UnitCollection
 from musify.utils import to_collection
