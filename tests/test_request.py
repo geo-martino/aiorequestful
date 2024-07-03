@@ -15,6 +15,7 @@ from aiorequests.cache.response import CachedResponse
 from aiorequests.cache.session import CachedSession
 from aiorequests.exception import RequestError, ResponseError
 from aiorequests.request import RequestHandler
+from aiorequests.types import Method
 from tests.cache.backend.utils import MockRequestSettings
 
 
@@ -141,24 +142,24 @@ class TestRequestHandler:
             repository = await handler.session.cache.create_repository(MockRequestSettings(name="test"))
             handler.session.cache.repository_getter = lambda _, __: repository
 
-            async with handler._request(method="GET", url=url, persist=False) as response:
+            async with handler._request(method=Method.GET, url=url, persist=False) as response:
                 assert await response.json() == expected_json
                 requests_mock.assert_called_once()
 
             key = repository.get_key_from_request(response.request_info)
             assert await repository.get_response(key) is None
 
-            async with handler._request(method="GET", url=url, persist=True) as response:
+            async with handler._request(method=Method.GET, url=url, persist=True) as response:
                 assert await response.json() == expected_json
             assert sum(map(len, requests_mock.requests.values())) == 2
             assert await repository.get_response(key)
 
-            async with handler._request(method="GET", url=url) as response:
+            async with handler._request(method=Method.GET, url=url) as response:
                 assert await response.json() == expected_json
             assert sum(map(len, requests_mock.requests.values())) == 2
 
             await repository.clear()
-            async with handler._request(method="GET", url=url) as response:
+            async with handler._request(method=Method.GET, url=url) as response:
                 assert await response.json() == expected_json
             assert sum(map(len, requests_mock.requests.values())) == 3
 
@@ -171,7 +172,7 @@ class TestRequestHandler:
         url = "http://localhost/text_response"
         requests_mock.get(url, callback=raise_error, repeat=True)
         async with request_handler as handler:
-            async with handler._request(method="GET", url=url) as response:
+            async with handler._request(method=Method.GET, url=url) as response:
                 assert response is None
 
             url = "http://localhost/test"
@@ -199,7 +200,7 @@ class TestRequestHandler:
             # fail on breaking status code
             requests_mock.delete(url, status=400)
             assert handler.timeout < 2000
-            with pytest.raises(RequestError):
+            with pytest.raises(ResponseError):
                 await handler.delete(method="GET", url=url)
 
     async def test_backoff(self, request_handler: RequestHandler, requests_mock: aioresponses):

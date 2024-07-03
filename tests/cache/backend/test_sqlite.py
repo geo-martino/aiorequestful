@@ -31,7 +31,7 @@ class SQLiteTester(BaseResponseTester):
 
     @staticmethod
     def generate_item(settings: RequestSettings) -> tuple[tuple, dict[str, Any]]:
-        key = ("GET", fake.uuid4(str),)
+        key = ("GET", fake.word(),)
         value = {
             fake.word(): fake.word(),
             fake.word(): fake.word(),

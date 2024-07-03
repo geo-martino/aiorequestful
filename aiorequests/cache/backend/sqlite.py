@@ -46,18 +46,18 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
     async def create(self) -> Self:
         ddl_sep = "\t, "
         ddl = "\n".join((
-            f"CREATE TABLE IF NOT EXISTS {self.settings.name} (",
-            "\t" + f"\n{ddl_sep}".join(
-                f"{key} {data_type} NOT NULL" for key, data_type in self._primary_key_columns.items()
+            f'CREATE TABLE IF NOT EXISTS "{self.settings.name}" (',
+            '\t' + f'\n{ddl_sep}'.join(
+                f'"{key}" {data_type} NOT NULL' for key, data_type in self._primary_key_columns.items()
             ),
-            f"{ddl_sep}{self.name_column} TEXT",
-            f"{ddl_sep}{self.cached_column} TIMESTAMP NOT NULL",
-            f"{ddl_sep}{self.expiry_column} TIMESTAMP NOT NULL",
-            f"{ddl_sep}{self.data_column} TEXT",
-            f"{ddl_sep}PRIMARY KEY ({", ".join(self._primary_key_columns)})",
-            ");",
-            f"CREATE INDEX IF NOT EXISTS idx_{self.expiry_column} "
-            f"ON {self.settings.name}({self.expiry_column});"
+            f'{ddl_sep}"{self.name_column}" TEXT',
+            f'{ddl_sep}"{self.cached_column}" TIMESTAMP NOT NULL',
+            f'{ddl_sep}"{self.expiry_column}" TIMESTAMP NOT NULL',
+            f'{ddl_sep}"{self.data_column}" TEXT',
+            f'{ddl_sep}PRIMARY KEY ("{'", "'.join(self._primary_key_columns)}")',
+            ');',
+            f'CREATE INDEX IF NOT EXISTS idx_{self.expiry_column} '
+            f'ON "{self.settings.name}"({self.expiry_column});'
         ))
 
         self.logger.debug(f"Creating {self.settings.name!r} table with the following DDL:\n{ddl}")
@@ -123,11 +123,11 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
         return str(request.method).upper(), *key
 
     async def count(self, include_expired: bool = True) -> int:
-        query = f"SELECT COUNT(*) FROM {self.settings.name}"
+        query = f'SELECT COUNT(*) FROM "{self.settings.name}"'
         params = []
 
         if not include_expired:
-            query += f"\nWHERE {self.expiry_column} > ?"
+            query += f'\nWHERE "{self.expiry_column}" > ?'
             params.append(datetime.now().isoformat())
 
         async with self.connection.execute(query, params) as cur:
@@ -138,20 +138,20 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
     async def contains(self, request: RepositoryRequestType[K]) -> bool:
         key = self.get_key_from_request(request)
         query = "\n".join((
-            f"SELECT COUNT(*) FROM {self.settings.name}",
-            f"WHERE {self.expiry_column} > ?",
-            f"\tAND {"\n\tAND ".join(f"{key} = ?" for key in self._primary_key_columns)}",
+            f'SELECT COUNT(*) FROM "{self.settings.name}"',
+            f'WHERE "{self.expiry_column}" > ?',
+            f'\tAND {'\n\tAND '.join(f'"{key}" = ?' for key in self._primary_key_columns)}',
         ))
         async with self.connection.execute(query, (datetime.now().isoformat(), *key)) as cur:
             rows = await cur.fetchone()
         return rows[0] > 0
 
     async def clear(self, expired_only: bool = False) -> int:
-        query = f"DELETE FROM {self.settings.name}"
+        query = f'DELETE FROM "{self.settings.name}"'
         params = []
 
         if expired_only:
-            query += f"\nWHERE {self.expiry_column} > ?"
+            query += f'\nWHERE "{self.expiry_column}" > ?'
             params.append(datetime.now().isoformat())
 
         async with self.connection.execute(query, params) as cur:
@@ -160,9 +160,9 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
 
     async def __aiter__(self):
         query = "\n".join((
-            f"SELECT {", ".join(self._primary_key_columns)}, {self.data_column} ",
-            f"FROM {self.settings.name}",
-            f"WHERE {self.expiry_column} > ?",
+            f'SELECT "{'", "'.join(self._primary_key_columns)}", "{self.data_column}" ',
+            f'FROM "{self.settings.name}"',
+            f'WHERE "{self.expiry_column}" > ?',
         ))
         async with self.connection.execute(query, (datetime.now().isoformat(),)) as cur:
             async for row in cur:
@@ -174,10 +174,10 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
             return
 
         query = "\n".join((
-            f"SELECT {self.data_column} FROM {self.settings.name}",
-            f"WHERE {self.data_column} IS NOT NULL",
-            f"\tAND {self.expiry_column} > ?",
-            f"\tAND {"\n\tAND ".join(f"{key} = ?" for key in self._primary_key_columns)}",
+            f'SELECT "{self.data_column}" FROM {self.settings.name}',
+            f'WHERE "{self.data_column}" IS NOT NULL',
+            f'\tAND "{self.expiry_column}" > ?',
+            f'\tAND {'\n\tAND '.join(f'"{key}" = ?' for key in self._primary_key_columns)}',
         ))
 
         async with self.connection.execute(query, (datetime.now().isoformat(), *key)) as cur:
@@ -196,10 +196,10 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
             self.data_column
         )
         query = "\n".join((
-            f"INSERT OR REPLACE INTO {self.settings.name} (",
-            f"\t{", ".join(columns)}",
-            ") ",
-            f"VALUES({",".join("?" * len(columns))});",
+            f'INSERT OR REPLACE INTO "{self.settings.name}" (',
+            f'\t"{'", "'.join(columns)}"',
+            ') ',
+            f'VALUES({','.join('?' * len(columns))});',
         ))
         params = (
             *__key,
@@ -214,8 +214,8 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
     async def delete_response(self, request: RepositoryRequestType[K]) -> bool:
         key = self.get_key_from_request(request)
         query = "\n".join((
-            f"DELETE FROM {self.settings.name}",
-            f"WHERE {"\n\tAND ".join(f"{key} = ?" for key in self._primary_key_columns)}",
+            f'DELETE FROM "{self.settings.name}"',
+            f'WHERE {'\n\tAND '.join(f'"{key}" = ?' for key in self._primary_key_columns)}',
         ))
 
         async with self.connection.execute(query, key) as cur:

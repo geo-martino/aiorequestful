@@ -306,7 +306,7 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
             raise CacheError(
                 "Too many different types of requests given. Given requests must relate to the same repository type"
             )
-        return next(iter(results))
+        return next(iter(results), None)
 
     async def get_response(self, request: CacheRequestType) -> Any:
         """Get the response relating to the given ``request`` from the appropriate repository if it exists."""

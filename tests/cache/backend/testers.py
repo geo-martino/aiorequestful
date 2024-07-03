@@ -402,7 +402,7 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
     def test_get_repository_for_requests(self, cache: ResponseCache):
         repository = choice(list(cache.values()))
         requests = [self.generate_response(repository.settings).request_info for _ in range(3, 6)]
-        cache.get_repository_from_requests(requests)
+        assert cache.get_repository_from_requests(requests) == repository
 
     def test_get_repository_for_responses(self, cache: ResponseCache):
         repository = choice(list(cache.values()))

@@ -160,6 +160,7 @@ class RequestHandler:
         :return: The JSON formatted response or, if JSON formatting not possible, the text response.
         :raise APIError: On any logic breaking error/response.
         """
+        method = Method.get(method)
         backoff = self.backoff_start
 
         while True:
@@ -194,7 +195,7 @@ class RequestHandler:
     @contextlib.asynccontextmanager
     async def _request(
             self,
-            method: MethodInput,
+            method: Method,
             url: URLInput,
             log_message: str | list[str] = None,
             **kwargs
@@ -213,8 +214,6 @@ class RequestHandler:
             self._clean_requests_kwargs(kwargs)
         if "headers" in kwargs:
             kwargs["headers"].update(self.session.headers)
-
-        method = Method.get(method)
 
         try:
             async with self.session.request(method=method.name, url=url, **kwargs) as response:
@@ -238,6 +237,8 @@ class RequestHandler:
         """Format and log a request or request adjacent message to the given ``level``."""
         log: list[Any] = []
 
+        method = Method.get(method)
+
         url = URL(url)
         if url.query:
             log.extend(f"{k}: {unquote(v):<4}" for k, v in sorted(url.query.items()))
@@ -250,7 +251,7 @@ class RequestHandler:
         if message:
             log.append(message) if isinstance(message, str) else log.extend(message)
 
-        self.logger.log(level=level, msg=format_url_log(method=method, url=url, messages=log))
+        self.logger.log(level=level, msg=format_url_log(method=method.name, url=url, messages=log))
 
     def _log_backoff_start(self) -> None:
         if self._backoff_start_logged:
@@ -268,7 +269,7 @@ class RequestHandler:
         if isinstance(response.headers, Mapping):  # format headers if JSON
             response_headers = json.dumps(dict(response.headers), indent=2)
         self.log(
-            method=f"\33[91m{method.name}",
+            method=method.name,
             url=url,
             message=[
                 f"Status code: {response.status}",
