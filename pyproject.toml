@@ -1,0 +1,102 @@
+[build-system]
+requires = ["hatchling", "versioningit"]
+build-backend = "hatchling.build"
+
+[project]
+dynamic = ["version"]
+name = "aiorequests"
+authors = [
+  { name="George Martin Marino", email="gm.engineer+aiorequests@pm.me" },
+]
+description = "Asynchronous REST API client framework for asyncio and Python "
+readme = "README.md"
+license-files = { paths = ["LICENSE"] }
+requires-python = ">=3.12"
+classifiers = [
+    "Programming Language :: Python :: 3.12",
+    # "Programming Language :: Python :: 3.13",
+    "License :: OSI Approved :: GNU Affero General Public License v3",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+    "Development Status :: 5 - Production/Stable",
+    "Natural Language :: English",
+    "Intended Audience :: Developers",
+]
+dependencies = [
+    "aiohttp~=3.9",
+]
+
+[project.optional-dependencies]
+# optional functionality
+all = [
+    "aiorequests[sqlite]",
+]
+sqlite = [
+    "aiosqlite~=0.20",
+]
+
+# dev dependencies
+build = [
+    "hatch",
+    "versioningit",
+]
+test = [
+    "aiorequests[all]",
+    "pytest~=8.2",
+    "pytest-asyncio~=0.23",
+    "pytest-xdist~=3.6",
+    "pytest-mock~=3.14",
+    "aioresponses~=0.7",
+    "pyyaml~=6.0",
+    "Faker~=0.7",
+]
+docs = [
+    "aiorequests[build]",
+    "sphinx~=7.3",
+    "renku_sphinx_theme",
+    "graphviz~=0.20",
+    "sphinx-autodoc-typehints~=2.2",
+    "autodocsumm~=0.2",
+    "sphinxext-opengraph~=0.9",
+    "matplotlib~=3.9",
+]
+dev = [
+    "aiorequests[test,docs]",
+    "flake8",
+    "grip",
+    "jupyterlab",
+    "ipywidgets",
+]
+
+[project.urls]
+"Documentation" = "https://geo-martino.github.io/aiorequests/"
+"Release Notes" = "https://geo-martino.github.io/aiorequests/release-history.html"
+"Contribute" = "https://geo-martino.github.io/aiorequests/contributing.html"
+"Source code" = "https://github.com/geo-martino/aiorequests"
+Issues = "https://github.com/geo-martino/aiorequests/issues"
+
+[tool.hatch.version]
+source = "versioningit"
+default-version = "0.0.0"
+
+[tool.versioningit.format]
+# WORKAROUND: commits for actual production releases keep getting identified as dirty and/or with distance
+#  Delete this config when fixed. It should be the commented lines below each (i.e. the default formats)
+#distance = "{next_version}.dev{distance}+{vcs}{rev}"
+dirty = "{base_version}"
+#dirty = "{base_version}+d{build_date:%Y%m%d}"
+distance-dirty = "{base_version}"
+#distance-dirty = "{next_version}.dev{distance}+{vcs}{rev}.d{build_date:%Y%m%d}"
+
+[tool.hatch.build.targets.sdist]
+include = ["aiorequests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-color=yes"
+markers = [
+    "slow: marks test as slow (deselect with '-m \"not slow\"')",
+    "manual: marks tests to be run only when manually directed to by the developer",
+]
+asyncio_mode = "auto"
