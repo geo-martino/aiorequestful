@@ -11,9 +11,9 @@ from aioresponses import aioresponses
 from pytest_mock import MockerFixture
 from yarl import URL
 
-from aiorestapi import MODULE_ROOT
-from aiorestapi.authorise import APIAuthoriser
-from aiorestapi.exception import APIError
+from aioapiclient import MODULE_ROOT
+from aioapiclient.authorise import APIAuthoriser
+from aioapiclient.exception import APIError
 from tests.utils import path_token
 
 

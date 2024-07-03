@@ -1,7 +1,7 @@
 """
 Fills in the variable fields of the README template and generates README.md file.
 """
-from aiorestapi import PROGRAM_OWNER_USER, PROGRAM_NAME
+from aioapiclient import PROGRAM_OWNER_USER, PROGRAM_NAME
 
 SRC_FILENAME = "README.template.md"
 TRG_FILENAME = SRC_FILENAME.replace(".template", "")

@@ -6,8 +6,8 @@ from typing import Any
 import pytest
 from aiohttp import ClientResponse, ClientSession
 
-from aiorestapi.cache.backend.base import ResponseRepository, ResponseCache, RequestSettings
-from aiorestapi.exception import CacheError
+from aioapiclient.cache.backend.base import ResponseRepository, ResponseCache, RequestSettings
+from aioapiclient.exception import CacheError
 from tests.cache.backend.utils import MockRequestSettings, MockPaginatedRequestSettings
 from tests.utils import random_str
 

@@ -5,7 +5,7 @@
 from datetime import datetime
 from pathlib import Path
 
-from aiorestapi import MODULE_ROOT, PROGRAM_OWNER_NAME, PROGRAM_OWNER_USER, PROGRAM_NAME
+from aioapiclient import MODULE_ROOT, PROGRAM_OWNER_NAME, PROGRAM_OWNER_USER, PROGRAM_NAME
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
@@ -67,7 +67,7 @@ html_theme_options = dict(
     includehidden=True,
     titles_only=False,
 )
-# html_logo = "_images/aiorestapi-logo.png"
+# html_logo = "_images/aioapiclient-logo.png"
 html_css_files = [
     "style.css",
 ]

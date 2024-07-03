@@ -3,7 +3,7 @@ All base classes relating to generic API operations including authorisation and 
 """
 from pathlib import Path
 
-PROGRAM_NAME = "aiorestapi"
+PROGRAM_NAME = "aioapiclient"
 PROGRAM_OWNER_NAME = "George Martin Marino"
 PROGRAM_OWNER_USER = "geo-martino"
 PROGRAM_OWNER_EMAIL = f"gm.engineer+{PROGRAM_NAME.lower()}@pm.me"

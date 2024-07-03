@@ -5,7 +5,7 @@ import pytest
 from aiohttp import ClientRequest
 from yarl import URL
 
-from aiorestapi.cache.response import CachedResponse
+from aioapiclient.cache.response import CachedResponse
 
 
 class TestCachedResponse:

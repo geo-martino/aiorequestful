@@ -12,9 +12,9 @@ import pytest
 from aiohttp import ClientRequest, ClientResponse, ClientSession
 from yarl import URL
 
-from aiorestapi.cache.backend.base import RequestSettings
-from aiorestapi.cache.backend.sqlite import SQLiteTable, SQLiteCache
-from aiorestapi.cache.response import CachedResponse
+from aioapiclient.cache.backend.base import RequestSettings
+from aioapiclient.cache.backend.sqlite import SQLiteTable, SQLiteCache
+from aioapiclient.cache.response import CachedResponse
 from tests.cache.backend.testers import ResponseRepositoryTester, ResponseCacheTester, BaseResponseTester
 from tests.cache.backend.utils import MockPaginatedRequestSettings
 from tests.utils import random_str
