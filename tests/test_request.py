@@ -13,7 +13,7 @@ from aiorequests.cache.backend.base import ResponseCache
 from aiorequests.cache.backend.sqlite import SQLiteCache
 from aiorequests.cache.response import CachedResponse
 from aiorequests.cache.session import CachedSession
-from aiorequests.exception import APIError, RequestError
+from aiorequests.exception import RequestError, ResponseError
 from aiorequests.request import RequestHandler
 from tests.cache.backend.utils import MockRequestSettings
 
@@ -85,7 +85,7 @@ class TestRequestHandler:
 
         # error message not found, raises exception
         response.status = 400
-        with pytest.raises(APIError):
+        with pytest.raises(ResponseError):
             await request_handler._handle_bad_response(response=response)
 
         # increases wait time on responses with 'too many requests'
@@ -119,7 +119,7 @@ class TestRequestHandler:
         request = ClientRequest(method="GET", url=url, headers=headers)
         response = CachedResponse(request, data="")
         assert request_handler.timeout < 2000
-        with pytest.raises(APIError):
+        with pytest.raises(RequestError):
             await request_handler._wait_for_rate_limit_timeout(response=response)
 
     async def test_get_json_response(self, request_handler: RequestHandler, url: URL):
@@ -182,24 +182,24 @@ class TestRequestHandler:
 
             # still process wait time on good status code
             requests_mock.post(url, status=200, headers={"retry-after": "2000"}, payload=expected_json)
-            with pytest.raises(APIError):
+            with pytest.raises(RequestError):
                 assert await handler.request(method="POST", url=url) == expected_json
 
             # still handles bad response on good status code
             requests_mock.post(url, status=200, headers={"error": {"status": 404}}, payload=expected_json)
-            with pytest.raises(APIError):
+            with pytest.raises(RequestError):
                 assert await handler.request(method="PATCH", url=url) == expected_json
 
             # fail on long wait time
             requests_mock.put(url, status=429, headers={"retry-after": "2000"})
             assert handler.timeout < 2000
-            with pytest.raises(APIError):
+            with pytest.raises(RequestError):
                 await handler.put(url=url)
 
             # fail on breaking status code
             requests_mock.delete(url, status=400)
             assert handler.timeout < 2000
-            with pytest.raises(APIError):
+            with pytest.raises(RequestError):
                 await handler.delete(method="GET", url=url)
 
     async def test_backoff(self, request_handler: RequestHandler, requests_mock: aioresponses):

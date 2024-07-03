@@ -53,16 +53,9 @@ What's in this documentation
    :maxdepth: 1
    :caption: 📖 Reference
 
-   musify.api
-   musify.core
-   musify.file
-   musify.libraries
-   musify.log
-   musify.processors
-   musify.exception
-   musify.field
-   musify.report
-   musify.types
-   musify.utils
+   aiorequests.cache
+   aiorequests.authorise
+   aiorequests.exception
+   aiorequests.request
 
    genindex

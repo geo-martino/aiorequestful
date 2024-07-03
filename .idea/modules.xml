@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/aiorestapi.iml" filepath="$PROJECT_DIR$/.idea/aiorestapi.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/aiorequests.iml" filepath="$PROJECT_DIR$/.idea/aiorequests.iml" />
     </modules>
   </component>
 </project>

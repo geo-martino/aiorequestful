@@ -3,6 +3,7 @@ All operations relating to handling of requests to an API.
 """
 import asyncio
 import contextlib
+import inspect
 import json
 import logging
 from collections.abc import Mapping, Callable
@@ -19,9 +20,10 @@ from aiorequests._utils import format_url_log
 from aiorequests.authorise import APIAuthoriser
 from aiorequests.cache.backend import ResponseCache
 from aiorequests.cache.session import CachedSession
-from aiorequests.exception import APIError, RequestError
+from aiorequests.exception import RequestError, ResponseError
 from musify.logger import MusifyLogger
-from musify.utils import clean_kwargs
+
+from aiorequests.types import JSON, URLInput, Headers, MethodInput, Method
 
 
 class RequestHandler:
@@ -125,7 +127,7 @@ class RequestHandler:
         await self.session.__aexit__(__exc_type, __exc_value, __traceback)
         self._session = None
 
-    async def authorise(self, force_load: bool = False, force_new: bool = False) -> dict[str, str]:
+    async def authorise(self, force_load: bool = False, force_new: bool = False) -> Headers:
         """
         Method for API authorisation which tests/refreshes/reauthorises as needed.
 
@@ -149,7 +151,7 @@ class RequestHandler:
         """Close the current session. No more requests will be possible once this has been called."""
         await self.session.close()
 
-    async def request(self, method: str, url: str | URL, **kwargs) -> dict[str, Any]:
+    async def request(self, method: MethodInput, url: URLInput, **kwargs) -> JSON:
         """
         Generic method for handling API requests with back-off on failed requests.
         See :py:func:`request` for more arguments.
@@ -165,7 +167,7 @@ class RequestHandler:
         while True:
             async with self._request(method=method, url=url, **kwargs) as response:
                 if response is None:
-                    raise APIError("No response received")
+                    raise RequestError("No response received")
 
                 handled = await self._handle_bad_response(response=response)
                 waited = await self._wait_for_rate_limit_timeout(response=response)
@@ -180,7 +182,7 @@ class RequestHandler:
                 await self._log_response(response=response, method=method, url=url)
 
                 if backoff > self.backoff_final or backoff == 0:
-                    raise APIError("Max retries exceeded")
+                    raise RequestError("Max retries exceeded")
 
                 # exponential backoff
                 self._log_backoff_start()
@@ -194,8 +196,8 @@ class RequestHandler:
     @contextlib.asynccontextmanager
     async def _request(
             self,
-            method: str,
-            url: str | URL,
+            method: MethodInput,
+            url: URLInput,
             log_message: str | list[str] = None,
             **kwargs
     ) -> ClientResponse | None:
@@ -210,20 +212,30 @@ class RequestHandler:
         self.log(method=method, url=url, message=log_message, **kwargs)
 
         if not isinstance(self.session, CachedSession):
-            clean_kwargs(aiohttp.request, kwargs)
+            self._clean_requests_kwargs(kwargs)
         if "headers" in kwargs:
             kwargs["headers"].update(self.session.headers)
 
+        method = Method.get(method)
+
         try:
-            async with self.session.request(method=method.upper(), url=url, **kwargs) as response:
+            async with self.session.request(method=method.name, url=url, **kwargs) as response:
                 yield response
                 await asyncio.sleep(self.wait_time)
         except aiohttp.ClientError as ex:
             self.logger.debug(str(ex))
             yield
 
+    @staticmethod
+    def _clean_requests_kwargs(kwargs: dict[str, Any]) -> None:
+        """Clean ``kwargs`` by removing any kwarg not in the signature of the :py:meth:`aiohttp.request` method."""
+        signature = inspect.signature(aiohttp.request).parameters
+        for key in list(kwargs):
+            if key not in signature:
+                kwargs.pop(key)
+
     def log(
-            self, method: str, url: str | URL, message: str | list = None, level: int = logging.DEBUG, **kwargs
+            self, method: MethodInput, url: URLInput, message: str | list = None, level: int = logging.DEBUG, **kwargs
     ) -> None:
         """Format and log a request or request adjacent message to the given ``level``."""
         log: list[Any] = []
@@ -252,13 +264,13 @@ class RequestHandler:
         )
         self._backoff_start_logged = True
 
-    async def _log_response(self, response: ClientResponse, method: str, url: str | URL) -> None:
+    async def _log_response(self, response: ClientResponse, method: Method, url: URLInput) -> None:
         """Log the method, URL, response text, and response headers."""
         response_headers = response.headers
         if isinstance(response.headers, Mapping):  # format headers if JSON
             response_headers = json.dumps(dict(response.headers), indent=2)
         self.log(
-            method=f"\33[91m{method.upper()}",
+            method=f"\33[91m{method.name}",
             url=url,
             message=[
                 f"Status code: {response.status}",
@@ -298,7 +310,7 @@ class RequestHandler:
             else:
                 _log_bad_response(f"Rate limit hit and wait time already at maximum of {self.wait_time}s")
         elif 400 <= response.status < 408:
-            raise APIError(error_message, response=response)
+            raise ResponseError(error_message, response=response)
 
         return handled
 
@@ -311,7 +323,7 @@ class RequestHandler:
         wait_str = (datetime.now() + timedelta(seconds=wait_time)).strftime("%Y-%m-%d %H:%M:%S")
 
         if wait_time > self.timeout:  # exception if too long
-            raise APIError(
+            raise RequestError(
                 f"Rate limit exceeded and wait time is greater than timeout of {self.timeout} seconds. "
                 f"Retry again at {wait_str}"
             )
@@ -326,7 +338,7 @@ class RequestHandler:
         return True
 
     @staticmethod
-    async def _get_json_response(response: ClientResponse) -> dict[str, Any]:
+    async def _get_json_response(response: ClientResponse) -> JSON:
         """Format the response to JSON and handle any errors"""
         try:
             data = await response.json()
@@ -334,38 +346,38 @@ class RequestHandler:
         except (aiohttp.ContentTypeError, json.decoder.JSONDecodeError):
             return {}
 
-    async def get(self, url: str | URL, **kwargs) -> dict[str, Any]:
+    async def get(self, url: URLInput, **kwargs) -> JSON:
         """Sends a GET request."""
         kwargs.pop("method", None)
         return await self.request("get", url=url, **kwargs)
 
-    async def post(self, url: str | URL, **kwargs) -> dict[str, Any]:
+    async def post(self, url: URLInput, **kwargs) -> JSON:
         """Sends a POST request."""
         kwargs.pop("method", None)
         return await self.request("post", url=url, **kwargs)
 
-    async def put(self, url: str | URL, **kwargs) -> dict[str, Any]:
+    async def put(self, url: URLInput, **kwargs) -> JSON:
         """Sends a PUT request."""
         kwargs.pop("method", None)
         return await self.request("put", url=url, **kwargs)
 
-    async def delete(self, url: str | URL, **kwargs) -> dict[str, Any]:
+    async def delete(self, url: URLInput, **kwargs) -> JSON:
         """Sends a DELETE request."""
         kwargs.pop("method", None)
         return await self.request("delete", url, **kwargs)
 
-    async def options(self, url: str | URL, **kwargs) -> dict[str, Any]:
+    async def options(self, url: URLInput, **kwargs) -> JSON:
         """Sends an OPTIONS request."""
         kwargs.pop("method", None)
         return await self.request("options", url=url, **kwargs)
 
-    async def head(self, url: str | URL, **kwargs) -> dict[str, Any]:
+    async def head(self, url: URLInput, **kwargs) -> JSON:
         """Sends a HEAD request."""
         kwargs.pop("method", None)
         kwargs.setdefault("allow_redirects", False)
         return await self.request("head", url=url, **kwargs)
 
-    async def patch(self, url: str | URL, **kwargs) -> dict[str, Any]:
+    async def patch(self, url: URLInput, **kwargs) -> JSON:
         """Sends a PATCH request."""
         kwargs.pop("method", None)
         return await self.request("patch", url=url, **kwargs)

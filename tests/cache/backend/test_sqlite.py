@@ -10,6 +10,7 @@ from typing import Any
 import aiosqlite
 import pytest
 from aiohttp import ClientRequest, ClientResponse, ClientSession
+from faker import Faker
 from yarl import URL
 
 from aiorequests.cache.backend.base import RequestSettings
@@ -17,7 +18,8 @@ from aiorequests.cache.backend.sqlite import SQLiteTable, SQLiteCache
 from aiorequests.cache.response import CachedResponse
 from tests.cache.backend.testers import ResponseRepositoryTester, ResponseCacheTester, BaseResponseTester
 from tests.cache.backend.utils import MockPaginatedRequestSettings
-from tests.utils import random_str
+
+fake = Faker()
 
 
 class SQLiteTester(BaseResponseTester):
@@ -29,11 +31,11 @@ class SQLiteTester(BaseResponseTester):
 
     @staticmethod
     def generate_item(settings: RequestSettings) -> tuple[tuple, dict[str, Any]]:
-        key = ("GET", random_str(30, 50),)
+        key = ("GET", fake.uuid4(str),)
         value = {
-            random_str(10, 30): random_str(10, 30),
-            random_str(10, 30): randrange(0, 100),
-            str(randrange(0, 100)): random_str(10, 30),
+            fake.word(): fake.word(),
+            fake.word(): fake.word(),
+            str(randrange(0, 100)): fake.word(),
             str(randrange(0, 100)): randrange(0, 100),
         }
 

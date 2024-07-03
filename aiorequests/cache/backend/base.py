@@ -7,12 +7,11 @@ from typing import Any, Self
 
 from aiohttp import RequestInfo, ClientRequest, ClientResponse
 from dateutil.relativedelta import relativedelta
-from yarl import URL
 
+from aiorequests._utils import get_iterator
 from aiorequests.exception import CacheError
 from musify.logger import MusifyLogger
-from musify.types import UnitCollection
-from musify.utils import to_collection
+from aiorequests.types import UnitCollection, JSON, URLInput
 
 type CacheRequestType = RequestInfo | ClientRequest | ClientResponse
 type RepositoryRequestType[K] = K | CacheRequestType
@@ -42,7 +41,7 @@ class RequestSettings(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def get_name(response: dict[str, Any]) -> str | None:
+    def get_name(response: JSON) -> str | None:
         """Extracts the name to assign to a cache entry in the repository from a given ``response``."""
         raise NotImplementedError
 
@@ -59,6 +58,13 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
     """
 
     __slots__ = ("logger", "connection", "settings", "_expire")
+
+    # noinspection PyPropertyDefinition,PyMethodParameters
+    @property
+    @abstractmethod
+    def _required_modules(cls) -> list:
+        """The modules required to instantiate this repository"""
+        return []
 
     @property
     def expire(self) -> datetime:
@@ -227,7 +233,7 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
     def __init__(
             self,
             cache_name: str,
-            repository_getter: Callable[[Self, str | URL], ST] = None,
+            repository_getter: Callable[[Self, URLInput], ST] = None,
             expire: timedelta | relativedelta = DEFAULT_EXPIRE,
     ):
         super().__init__()
@@ -289,14 +295,14 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
         """
         raise NotImplementedError
 
-    def get_repository_from_url(self, url: str | URL) -> ST | None:
+    def get_repository_from_url(self, url: URLInput) -> ST | None:
         """Returns the repository to use from the stored repositories in this cache for the given ``url``."""
         if self.repository_getter is not None:
             return self.repository_getter(self, url)
 
     def get_repository_from_requests(self, requests: UnitCollection[CacheRequestType]) -> ST | None:
         """Returns the repository to use from the stored repositories in this cache for the given ``requests``."""
-        requests = to_collection(requests)
+        requests = get_iterator(requests)
         results = {self.get_repository_from_url(request.url) for request in requests}
         if len(results) > 1:
             raise CacheError(

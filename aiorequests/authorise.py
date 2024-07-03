@@ -15,8 +15,10 @@ import aiohttp
 from yarl import URL
 
 from aiorequests import PROGRAM_NAME
-from aiorequests.exception import APIError
+from aiorequests.exception import AuthoriserError
 from musify.logger import MusifyLogger
+
+from aiorequests.types import JSON, Headers, ImmutableJSON, ImmutableHeaders
 
 
 class APIAuthoriser:
@@ -100,14 +102,14 @@ class APIAuthoriser:
     _user_auth_socket_port = 8080
 
     @property
-    def token_safe(self) -> dict[str, Any]:
+    def token_safe(self) -> JSON:
         """Returns a reformatted token, making it safe to log by removing sensitive values at predefined keys."""
         if not self.token:
             return {}
         return {k: f"{v[:5]}..." if str(k).endswith("_token") else v for k, v in self.token.items()}
 
     @property
-    def headers(self) -> dict[str, str]:
+    def headers(self) -> Headers:
         """
         Format headers to usage appropriate format
 
@@ -115,14 +117,14 @@ class APIAuthoriser:
             or a valid value was not found at the ``token_key_path`` within the token
         """
         if self.token is None:
-            raise APIError("Token not loaded.")
+            raise AuthoriserError("Token not loaded.")
 
         token_value = self.token
         for key in self.token_key_path:  # get token key value at given path
             token_value = token_value.get(key, {})
 
         if not isinstance(token_value, str):
-            raise APIError(
+            raise AuthoriserError(
                 f"Did not find valid token at key path: {self.token_key_path} -> {token_value} | " +
                 str(self.token_safe)
             )
@@ -138,12 +140,12 @@ class APIAuthoriser:
         test_args: MutableMapping[str, Any] | None = None,
         test_condition: Callable[[str | Mapping[str, Any]], bool] | None = None,
         test_expiry: int = 0,
-        token: Mapping[str, Any] | None = None,
+        token: ImmutableJSON | None = None,
         token_file_path: str | Path | None = None,
         token_key_path: Sequence[str] = ("access_token",),
         header_key: str = "Authorization",
         header_prefix: str | None = "Bearer ",
-        header_extra: Mapping[str, str] | None = None,
+        header_extra: ImmutableHeaders | None = None,
     ):
         # noinspection PyTypeChecker
         #: The :py:class:`MusifyLogger` for this  object
@@ -161,14 +163,14 @@ class APIAuthoriser:
         self.test_expiry: int = test_expiry
 
         # store token
-        self.token: Mapping[str, Any] | None = token
+        self.token: ImmutableJSON | None = token
         self.token_file_path: Path | None = Path(token_file_path) if token_file_path else None
         self.token_key_path: Sequence[str] = token_key_path
 
         # information for the final headers
         self.header_key: str = header_key
         self.header_prefix: str = header_prefix or ""
-        self.header_extra: dict[str, str] = header_extra or {}
+        self.header_extra: Headers = header_extra or {}
 
     def _sanitise_kwargs[T: MutableMapping[str, Any] | None](self, kwargs: T) -> T:
         self._sanitise_params(kwargs.get("params"))
@@ -185,7 +187,7 @@ class APIAuthoriser:
             elif isinstance(v, bool) or not isinstance(v, str | int | float):
                 params[k] = json.dumps(v)
 
-    def load_token(self) -> dict[str, Any] | None:
+    def load_token(self) -> JSON | None:
         """Load stored token from given path"""
         if not self.token_file_path or not self.token_file_path.exists():
             return self.token
@@ -204,10 +206,10 @@ class APIAuthoriser:
         with open(self.token_file_path, "w") as file:
             json.dump(self.token, file, indent=2)
 
-    def __call__(self, force_load: bool = False, force_new: bool = False) -> Awaitable[dict[str, str]]:
+    def __call__(self, force_load: bool = False, force_new: bool = False) -> Awaitable[Headers]:
         return self.authorise(force_load=force_load, force_new=force_new)
 
-    async def authorise(self, force_load: bool = False, force_new: bool = False) -> dict[str, str]:
+    async def authorise(self, force_load: bool = False, force_new: bool = False) -> Headers:
         """
         Main method for authorisation which tests/refreshes/reauthorises as needed.
 
@@ -258,9 +260,9 @@ class APIAuthoriser:
             valid = await self.test_token()
 
         if not self.token:
-            raise APIError("Token not generated")
+            raise AuthoriserError("Token not generated")
         elif not valid:
-            raise APIError(f"Token is still not valid: {self.token_safe}")
+            raise AuthoriserError(f"Token is still not valid: {self.token_safe}")
 
         self.logger.debug("Access token is valid. Saving...")
         self.save_token()
@@ -309,7 +311,7 @@ class APIAuthoriser:
         code = unquote(URL(path_raw).query["code"])
         self.auth_args.setdefault("data", {}).setdefault("code", code)
 
-    async def _request_token(self, **requests_args) -> dict[str, Any]:
+    async def _request_token(self, **requests_args) -> JSON:
         """
         Authenticates/refreshes basic API access and returns token.
 

@@ -4,11 +4,11 @@ from http.client import InvalidURL
 from typing import Self, Any
 
 from aiohttp import ClientSession, ClientRequest, payload
-from yarl import URL
 
 from aiorequests._utils import format_url_log
 from aiorequests.cache.backend.base import ResponseCache, ResponseRepository
 from aiorequests.cache.response import CachedResponse
+from aiorequests.types import URLInput
 from musify.logger import MusifyLogger
 
 ClientSession.__init_subclass__ = lambda *_, **__: _  # WORKAROUND: disables inheritance warning
@@ -43,7 +43,7 @@ class CachedSession(ClientSession):
         await self.cache.__aexit__(exc_type, exc_val, exc_tb)
 
     @contextlib.asynccontextmanager
-    async def request(self, method: str, url: str | URL, json: Any = None, persist: bool = True, **kwargs):
+    async def request(self, method: str, url: URLInput, json: Any = None, persist: bool = True, **kwargs):
         """
         Perform HTTP request.
 

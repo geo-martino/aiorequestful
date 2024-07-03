@@ -5,11 +5,13 @@ from typing import Any
 
 import pytest
 from aiohttp import ClientResponse, ClientSession
+from faker import Faker
 
 from aiorequests.cache.backend.base import ResponseRepository, ResponseCache, RequestSettings
 from aiorequests.exception import CacheError
 from tests.cache.backend.utils import MockRequestSettings, MockPaginatedRequestSettings
-from tests.utils import random_str
+
+fake = Faker()
 
 REQUEST_SETTINGS = [
     MockRequestSettings,
@@ -313,7 +315,7 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
     def generate_settings() -> RequestSettings:
         """Randomly generates a :py:class:`RequestSettings` object that can be used to create a repository."""
         cls: type[RequestSettings] = choice(REQUEST_SETTINGS)
-        return cls(name=random_str(20, 30))
+        return cls(name=fake.word())
 
     @staticmethod
     @abstractmethod
@@ -393,7 +395,7 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
         url = self.generate_response(repository.settings).request_info.url
 
         assert cache.get_repository_from_url(url).settings.name == repository.settings.name
-        assert cache.get_repository_from_url(f"http://www.does-not-exist.com/{random_str()}/{random_str()}") is None
+        assert cache.get_repository_from_url(f"http://www.does-not-exist.com/{fake.word()}/{fake.uuid4(str)}") is None
         cache.repository_getter = None
         assert cache.get_repository_from_url(url) is None
 

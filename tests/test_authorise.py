@@ -13,7 +13,7 @@ from yarl import URL
 
 from aiorequests import MODULE_ROOT
 from aiorequests.authorise import APIAuthoriser
-from aiorequests.exception import APIError
+from aiorequests.exception import AuthoriserError
 from tests.utils import path_token
 
 
@@ -42,7 +42,7 @@ class TestAPIAuthoriser:
 
     # noinspection PyStatementEffect
     def test_properties(self, authoriser: APIAuthoriser, token: dict[str, Any]):
-        with pytest.raises(APIError):
+        with pytest.raises(AuthoriserError):
             authoriser.headers
 
         authoriser.token = token
@@ -58,7 +58,7 @@ class TestAPIAuthoriser:
         assert authoriser.headers == {"Authorization": f"Bearer {authoriser.token["access_token"]}"} | extra
 
         authoriser.token_key_path = ("does", "not", "exist")
-        with pytest.raises(APIError):
+        with pytest.raises(AuthoriserError):
             authoriser.headers
 
         assert authoriser.token == token
@@ -257,7 +257,7 @@ class TestAPIAuthoriser:
         authoriser = APIAuthoriser(name="test", token=token, token_file_path=token_file_path)
 
         # force new despite being given token and token file path
-        with pytest.raises(APIError):
+        with pytest.raises(AuthoriserError):
             await authoriser.authorise(force_new=True)
 
     async def test_auth_new_token_and_no_refresh(
@@ -308,14 +308,14 @@ class TestAPIAuthoriser:
         response = {"expires_in": 10}
         requests_mock.post(authoriser.refresh_args["url"], payload=response, repeat=True)
 
-        with pytest.raises(APIError):
+        with pytest.raises(AuthoriserError):
             await authoriser.authorise()
 
         authoriser.auth_args = {"url": "http://localhost/auth"}
         response = {"get_token": "valid token", "expires_in": 20, "refresh_token": "new_refresh"}
         requests_mock.post(authoriser.auth_args["url"], payload=response)
 
-        with pytest.raises(APIError):
+        with pytest.raises(AuthoriserError):
             await authoriser.authorise()
 
         response = {"get_token": "valid token", "expires_in": 3000, "refresh_token": "new_refresh"}

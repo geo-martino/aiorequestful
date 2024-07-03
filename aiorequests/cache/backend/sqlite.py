@@ -10,20 +10,18 @@ from typing import Any, Self
 
 from aiohttp import RequestInfo, ClientRequest, ClientResponse
 from dateutil.relativedelta import relativedelta
-from yarl import URL
 
 from aiorequests import PROGRAM_NAME
+from aiorequests._utils import required_modules_installed
 from aiorequests.cache.backend.base import DEFAULT_EXPIRE, ResponseCache, ResponseRepository, RepositoryRequestType
 from aiorequests.cache.backend.base import RequestSettings
 from aiorequests.exception import CacheError
-from musify.utils import required_modules_installed
+from aiorequests.types import URLInput
 
 try:
     import aiosqlite
 except ImportError:
     aiosqlite = None
-
-REQUIRED_MODULES = [aiosqlite]
 
 
 class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
@@ -38,6 +36,12 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
     cached_column = "cached_at"
     #: The column under which the response expiry time is stored in the table
     expiry_column = "expires_at"
+
+    # noinspection PyPropertyDefinition
+    @classmethod
+    @property
+    def _required_modules(cls) -> list:
+        return [aiosqlite]
 
     async def create(self) -> Self:
         ddl_sep = "\t, "
@@ -68,7 +72,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
             settings: RequestSettings,
             expire: timedelta | relativedelta = DEFAULT_EXPIRE,
     ):
-        required_modules_installed(REQUIRED_MODULES, self)
+        required_modules_installed(self._required_modules, self)
 
         super().__init__(settings=settings, expire=expire)
 
@@ -267,7 +271,7 @@ class SQLiteCache(ResponseCache[SQLiteTable]):
         return cls.connect_with_path(path=value, **kwargs)
 
     @classmethod
-    def connect_with_path(cls, path: str | Path, **kwargs) -> Self:
+    def connect_with_path(cls, path: os.PathLike, **kwargs) -> Self:
         """Connect with an SQLite DB at the given ``path`` and return an instantiated :py:class:`SQLiteResponseCache`"""
         path = cls._get_sqlite_path(Path(path))
         os.makedirs(path.parent, exist_ok=True)
@@ -301,10 +305,11 @@ class SQLiteCache(ResponseCache[SQLiteTable]):
             self,
             cache_name: str,
             connector: Callable[[], aiosqlite.Connection],
-            repository_getter: Callable[[Self, str | URL], SQLiteTable] = None,
+            repository_getter: Callable[[Self, URLInput], SQLiteTable] = None,
             expire: timedelta | relativedelta = DEFAULT_EXPIRE,
     ):
-        required_modules_installed(REQUIRED_MODULES, self)
+        # noinspection PyProtectedMember,PyTypeChecker
+        required_modules_installed(SQLiteTable._required_modules, self)
 
         super().__init__(cache_name=cache_name, repository_getter=repository_getter, expire=expire)
 
