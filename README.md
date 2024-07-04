@@ -13,6 +13,6 @@
 [![GitHub - Deployment](https://github.com/geo-martino/aiorequestful/actions/workflows/deploy.yml/badge.svg?event=release)](https://github.com/geo-martino/aiorequestful/actions/workflows/deploy.yml)
 [![GitHub - Documentation](https://github.com/geo-martino/aiorequestful/actions/workflows/docs_publish.yml/badge.svg)](https://github.com/geo-martino/aiorequestful/actions/workflows/docs_publish.yml)
 
-### Asynchronous REST API client framework for asyncio and Python
+### Asynchronous RESTful API requests framework for asyncio and Python
 
 ## Contents
