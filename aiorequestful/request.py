@@ -185,7 +185,7 @@ class RequestHandler:
 
                 # exponential backoff
                 self._log_backoff_start()
-                self.log(method=method, url=url, message=f"Request failed: retrying in {backoff} seconds...")
+                self.log(method=method.name, url=url, message=f"Request failed: retrying in {backoff} seconds...")
                 await asyncio.sleep(backoff)
                 backoff *= self.backoff_factor
 
@@ -208,7 +208,7 @@ class RequestHandler:
 
         if isinstance(self.session, CachedSession):
             log_message.append("Cached Request")
-        self.log(method=method, url=url, message=log_message, **kwargs)
+        self.log(method=method.name, url=url, message=log_message, **kwargs)
 
         if not isinstance(self.session, CachedSession):
             self._clean_requests_kwargs(kwargs)
@@ -232,12 +232,10 @@ class RequestHandler:
                 kwargs.pop(key)
 
     def log(
-            self, method: MethodInput, url: URLInput, message: str | list = None, level: int = logging.DEBUG, **kwargs
+            self, method: str, url: URLInput, message: str | list = None, level: int = logging.DEBUG, **kwargs
     ) -> None:
         """Format and log a request or request adjacent message to the given ``level``."""
         log: list[Any] = []
-
-        method = Method.get(method)
 
         url = URL(url)
         if url.query:
@@ -251,7 +249,7 @@ class RequestHandler:
         if message:
             log.append(message) if isinstance(message, str) else log.extend(message)
 
-        self.logger.log(level=level, msg=format_url_log(method=method.name, url=url, messages=log))
+        self.logger.log(level=level, msg=format_url_log(method=method, url=url, messages=log))
 
     def _log_backoff_start(self) -> None:
         if self._backoff_start_logged:
