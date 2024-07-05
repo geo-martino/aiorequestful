@@ -17,7 +17,7 @@ from aiohttp import ClientResponse, ClientSession
 from yarl import URL
 
 from aiorequestful._utils import format_url_log
-from aiorequestful.authorise import APIAuthoriser
+from aiorequestful.auth import Authoriser
 from aiorequestful.cache.backend import ResponseCache
 from aiorequestful.cache.session import CachedSession
 from aiorequestful.exception import RequestError, ResponseError
@@ -76,7 +76,7 @@ class RequestHandler:
             return self._session
 
     @classmethod
-    def create(cls, authoriser: APIAuthoriser | None = None, cache: ResponseCache | None = None, **session_kwargs):
+    def create(cls, authoriser: Authoriser | None = None, cache: ResponseCache | None = None, **session_kwargs):
         """Create a new :py:class:`RequestHandler` with an appropriate session ``connector`` given the input kwargs"""
         def connector() -> ClientSession:
             """Create an appropriate session ``connector`` given the input kwargs"""
@@ -86,14 +86,14 @@ class RequestHandler:
 
         return cls(connector=connector, authoriser=authoriser)
 
-    def __init__(self, connector: Callable[[], ClientSession], authoriser: APIAuthoriser | None = None):
+    def __init__(self, connector: Callable[[], ClientSession], authoriser: Authoriser | None = None):
         #: The :py:class:`logging.Logger` for this  object
         self.logger: logging.Logger = logging.getLogger(__name__)
 
         self._connector = connector
         self._session: ClientSession | CachedSession | None = None
 
-        #: The :py:class:`APIAuthoriser` object
+        #: The :py:class:`Authoriser` object
         self.authoriser = authoriser
 
         #: The initial backoff time in seconds for failed requests
@@ -125,13 +125,10 @@ class RequestHandler:
         await self.session.__aexit__(__exc_type, __exc_value, __traceback)
         self._session = None
 
-    async def authorise(self, force_load: bool = False, force_new: bool = False) -> Headers:
+    async def authorise(self) -> Headers:
         """
         Method for API authorisation which tests/refreshes/reauthorises as needed.
 
-        :param force_load: Reloads the token even if it's already been loaded into the object.
-            Ignored when force_new is True.
-        :param force_new: Ignore saved/loaded token and generate new token.
         :return: Headers for request authorisation.
         :raise APIError: If the token cannot be validated.
         """
@@ -140,8 +137,7 @@ class RequestHandler:
 
         headers = {}
         if self.authoriser is not None:
-            headers = await self.authoriser(force_load=force_load, force_new=force_new)
-            self.session.headers.update(headers)
+            self.session.headers.update(await self.authoriser())
 
         return headers
 
