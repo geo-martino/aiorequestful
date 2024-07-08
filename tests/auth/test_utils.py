@@ -4,6 +4,7 @@ import socket
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
+from time import sleep
 from typing import Any
 
 import pytest
@@ -179,6 +180,7 @@ class TestAuthResponseHandler:
         assert all(key in response for key in response_enrich_keys)
         print(response)
 
+        sleep(0.1)
         response_handler.response = deepcopy(response)
         response_handler.enrich_response(refresh_token="this is a very secret refresh token")
         print(response)
