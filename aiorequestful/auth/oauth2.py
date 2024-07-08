@@ -120,8 +120,8 @@ class ClientCredentialsFlow(OAuth2Authoriser):
         """
         obj = cls.create(
             token_request_url=token_request_url,
-            client_id="",
-            client_secret="",
+            client_id=client_id,
+            client_secret="",  # avoid accidentally leaking client secret
             service_name=service_name,
         )
 
@@ -274,7 +274,7 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
             user_request_url=user_request_url,
             token_request_url=token_request_url,
             refresh_request_url=refresh_request_url,
-            client_id="",
+            client_id=client_id,
             client_secret="",
             scope=scope,
         )

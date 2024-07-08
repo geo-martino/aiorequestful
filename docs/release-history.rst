@@ -31,6 +31,14 @@ Release History
 The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
+0.2.1
+=====
+
+Fixed
+-----
+* Client ID not being passed to :py:meth:`.ClientCredentialsFlow.create` and :py:meth:`.AuthorisationCodeFlow.create`
+  from relevant create_with_encoded_credentials methods. Now passed correctly.q
+
 0.2.0
 =====
 

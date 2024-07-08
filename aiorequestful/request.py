@@ -13,7 +13,6 @@ from typing import Any, Self, Unpack
 from urllib.parse import unquote
 
 import aiohttp
-from aiohttp import ClientResponse, ClientSession
 from yarl import URL
 
 from aiorequestful._utils import format_url_log
@@ -70,7 +69,7 @@ class RequestHandler:
         return self._session is None or self._session.closed
 
     @property
-    def session(self) -> ClientSession:
+    def session(self) -> aiohttp.ClientSession:
         """The :py:class:`ClientSession` object if it exists and is open."""
         if not self.closed:
             return self._session
@@ -78,20 +77,20 @@ class RequestHandler:
     @classmethod
     def create(cls, authoriser: Authoriser | None = None, cache: ResponseCache | None = None, **session_kwargs):
         """Create a new :py:class:`RequestHandler` with an appropriate session ``connector`` given the input kwargs"""
-        def connector() -> ClientSession:
+        def connector() -> aiohttp.ClientSession:
             """Create an appropriate session ``connector`` given the input kwargs"""
             if cache is not None:
                 return CachedSession(cache=cache, **session_kwargs)
-            return ClientSession(**session_kwargs)
+            return aiohttp.ClientSession(**session_kwargs)
 
         return cls(connector=connector, authoriser=authoriser)
 
-    def __init__(self, connector: Callable[[], ClientSession], authoriser: Authoriser | None = None):
+    def __init__(self, connector: Callable[[], aiohttp.ClientSession], authoriser: Authoriser | None = None):
         #: The :py:class:`logging.Logger` for this  object
         self.logger: logging.Logger = logging.getLogger(__name__)
 
         self._connector = connector
-        self._session: ClientSession | CachedSession | None = None
+        self._session: aiohttp.ClientSession | CachedSession | None = None
 
         #: The :py:class:`Authoriser` object
         self.authoriser = authoriser
@@ -195,7 +194,7 @@ class RequestHandler:
             url: URLInput,
             log_message: str | list[str] = None,
             **kwargs
-    ) -> ClientResponse | None:
+    ) -> aiohttp.ClientResponse | None:
         """Handle logging a request, send the request, and return the response"""
         if isinstance(log_message, str):
             log_message = [log_message]
@@ -257,7 +256,7 @@ class RequestHandler:
         )
         self._backoff_start_logged = True
 
-    async def _log_response(self, response: ClientResponse, method: Method, url: URLInput) -> None:
+    async def _log_response(self, response: aiohttp.ClientResponse, method: Method, url: URLInput) -> None:
         """Log the method, URL, response text, and response headers."""
         response_headers = response.headers
         if isinstance(response.headers, Mapping):  # format headers if JSON
@@ -278,7 +277,7 @@ class RequestHandler:
     #  and have this handling dependency injected for this handler.
     #  This doesn't follow SOLID very well;
     #  would need to modify function directly to implement handling of new status codes.
-    async def _handle_bad_response(self, response: ClientResponse) -> bool:
+    async def _handle_bad_response(self, response: aiohttp.ClientResponse) -> bool:
         """Handle bad responses by extracting message and handling status codes that should raise an exception."""
         response_json = await self._get_json_response(response)
         error_message = response_json.get("error", {}).get("message")
@@ -307,7 +306,7 @@ class RequestHandler:
 
         return handled
 
-    async def _wait_for_rate_limit_timeout(self, response: ClientResponse) -> bool:
+    async def _wait_for_rate_limit_timeout(self, response: aiohttp.ClientResponse) -> bool:
         """Handle rate limits when a 'retry-after' time is included in the response headers."""
         if "retry-after" not in response.headers:
             return False
@@ -331,7 +330,7 @@ class RequestHandler:
         return True
 
     @staticmethod
-    async def _get_json_response(response: ClientResponse) -> JSON:
+    async def _get_json_response(response: aiohttp.ClientResponse) -> JSON:
         """Format the response to JSON and handle any errors"""
         try:
             data = await response.json()

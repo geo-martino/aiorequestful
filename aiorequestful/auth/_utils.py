@@ -58,6 +58,10 @@ class AuthRequest:
         :param key: The keyword of the argument to append data to.
         :param value: The value to append.
         """
+        if not value:
+            yield
+            return
+
         current_value = getattr(self, key, {})
         setattr(self, key, current_value | value)
 

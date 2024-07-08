@@ -4,7 +4,6 @@ from typing import Any
 
 import aiohttp
 import pytest
-from aiohttp import ClientRequest
 from aioresponses import aioresponses, CallbackResult
 from yarl import URL
 
@@ -73,7 +72,7 @@ class TestRequestHandler:
 
     async def test_bad_response_handling(self, request_handler: RequestHandler, url: URL):
         headers = {"Content-Type": "application/json"}
-        request = ClientRequest(method="GET", url=url, headers=headers)
+        request = aiohttp.ClientRequest(method="GET", url=url, headers=headers)
 
         # error message not found, no fail
         response = CachedResponse(request=request, data="")
@@ -99,33 +98,33 @@ class TestRequestHandler:
 
     async def test_rate_limit_handling(self, request_handler: RequestHandler, url: URL):
         # no header
-        request = ClientRequest(method="GET", url=URL("http://test.com"))
+        request = aiohttp.ClientRequest(method="GET", url=URL("http://test.com"))
         response = CachedResponse(request, data="")
         assert not await request_handler._wait_for_rate_limit_timeout(response=response)
 
         # expected key not in headers
         headers = {"header key": "header value"}
-        request = ClientRequest(method="GET", url=url, headers=headers)
+        request = aiohttp.ClientRequest(method="GET", url=url, headers=headers)
         response = CachedResponse(request, data="")
         assert not await request_handler._wait_for_rate_limit_timeout(response=response)
 
         # expected key in headers and time is short
         headers = {"retry-after": "1"}
-        request = ClientRequest(method="GET", url=url, headers=headers)
+        request = aiohttp.ClientRequest(method="GET", url=url, headers=headers)
         response = CachedResponse(request, data="")
         assert request_handler.timeout >= 1
         assert await request_handler._wait_for_rate_limit_timeout(response=response)
 
         # expected key in headers and time too long
         headers = {"retry-after": "2000"}
-        request = ClientRequest(method="GET", url=url, headers=headers)
+        request = aiohttp.ClientRequest(method="GET", url=url, headers=headers)
         response = CachedResponse(request, data="")
         assert request_handler.timeout < 2000
         with pytest.raises(RequestError):
             await request_handler._wait_for_rate_limit_timeout(response=response)
 
     async def test_get_json_response(self, request_handler: RequestHandler, url: URL):
-        request = ClientRequest(method="GET", url=url, headers={"Content-Type": "application/json"})
+        request = aiohttp.ClientRequest(method="GET", url=url, headers={"Content-Type": "application/json"})
         response = CachedResponse(request=request, data="simple text should not be returned")
         assert await request_handler._get_json_response(response) == {}
 
