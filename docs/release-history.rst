@@ -37,7 +37,7 @@ and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0
 Fixed
 -----
 * Client ID not being passed to :py:meth:`.ClientCredentialsFlow.create` and :py:meth:`.AuthorisationCodeFlow.create`
-  from relevant create_with_encoded_credentials methods. Now passed correctly.q
+  from relevant create_with_encoded_credentials methods. Now passed correctly.
 
 0.2.0
 =====
