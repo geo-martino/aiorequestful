@@ -177,9 +177,12 @@ class TestAuthResponseHandler:
 
         response_handler.enrich_response(response, refresh_token="i am a refresh token")
         assert all(key in response for key in response_enrich_keys)
+        print(response)
 
         response_handler.response = deepcopy(response)
         response_handler.enrich_response(refresh_token="this is a very secret refresh token")
+        print(response)
+        print(response_handler.response)
 
         # overwrites these keys
         for key in ("granted_at", "expires_at"):
