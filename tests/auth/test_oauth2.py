@@ -263,6 +263,7 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
         socket_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         mocker.patch.object(socket.socket, attribute="accept", return_value=(socket_listener, None))
         mocker.patch.object(socket.socket, attribute="send")
+        mocker.patch.object(socket.socket, attribute="close")
 
         requests_mock.add(
             method=authoriser.user_request.method.name,
