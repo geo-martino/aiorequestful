@@ -8,7 +8,8 @@ from aiohttp import ClientRequest
 from aioresponses import aioresponses, CallbackResult
 from yarl import URL
 
-from aiorequestful.authorise import APIAuthoriser
+from aiorequestful.auth import Authoriser
+from aiorequestful.auth.basic import BasicAuthoriser
 from aiorequestful.cache.backend.base import ResponseCache
 from aiorequestful.cache.backend.sqlite import SQLiteCache
 from aiorequestful.cache.response import CachedResponse
@@ -32,12 +33,12 @@ class TestRequestHandler:
         return SQLiteCache.connect_with_in_memory_db()
 
     @pytest.fixture
-    def authoriser(self, token: dict[str, Any]) -> APIAuthoriser:
-        """Yield a simple :py:class:`APIAuthoriser` object"""
-        return APIAuthoriser(name="test", token=token)
+    def authoriser(self, token: dict[str, Any]) -> Authoriser:
+        """Yield a simple :py:class:`Authoriser` object"""
+        return BasicAuthoriser(login="test")
 
     @pytest.fixture
-    def request_handler(self, authoriser: APIAuthoriser, cache: ResponseCache) -> RequestHandler:
+    def request_handler(self, authoriser: Authoriser, cache: ResponseCache) -> RequestHandler:
         """Yield a simple :py:class:`RequestHandler` object"""
         return RequestHandler.create(
             authoriser=authoriser, cache=cache, headers={"Content-Type": "application/json"}
@@ -52,9 +53,9 @@ class TestRequestHandler:
             "scope": "test-read"
         }
 
-    async def test_init(self, token: dict[str, Any], authoriser: APIAuthoriser, cache: ResponseCache):
+    async def test_init(self, token: dict[str, Any], authoriser: Authoriser, cache: ResponseCache):
         handler = RequestHandler.create(authoriser=authoriser, cache=cache)
-        assert handler.authoriser.token == token
+        assert handler.authoriser == authoriser
         assert not isinstance(handler.session, CachedSession)
 
         handler = RequestHandler.create(authoriser=authoriser, cache=cache)
@@ -67,7 +68,7 @@ class TestRequestHandler:
         async with request_handler as handler:
             assert isinstance(handler.session, CachedSession)
 
-            for k, v in handler.authoriser.headers.items():
+            for k, v in (await handler.authoriser.authorise()).items():
                 assert handler.session.headers.get(k) == v
 
     async def test_bad_response_handling(self, request_handler: RequestHandler, url: URL):

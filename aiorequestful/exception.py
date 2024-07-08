@@ -45,7 +45,7 @@ class ResponseError(HTTPError):
     :param message: Explanation of the error.
     :param response: The :py:class:`ClientResponse` related to the error.
     """
-    def __init__(self, message: str | None = None, response: ClientResponse | None = None):
+    def __init__(self, message: str = None, response: ClientResponse | None = None):
         self.message = message
         self.response = response
         formatted = f"Status code: {response.status} | {message}" if response else message
