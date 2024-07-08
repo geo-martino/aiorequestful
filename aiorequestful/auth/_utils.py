@@ -168,6 +168,7 @@ class AuthResponseHandler:
 
         # add granted and expiry times to token
         response["granted_at"] = datetime.now().timestamp()
+        print(datetime.now().timestamp())
         if "expires_in" in response:
             expires_at = response["granted_at"] + float(response["expires_in"])
             response["expires_at"] = expires_at
