@@ -162,13 +162,11 @@ class AuthResponseHandler:
         If no ``response`` is given, uses the stored response.
         """
         response = response or self.response
-        print("INSIDE", response)
         if not response:
             return
 
         # add granted and expiry times to token
         response["granted_at"] = datetime.now().timestamp()
-        print(datetime.now().timestamp())
         if "expires_in" in response:
             expires_at = response["granted_at"] + float(response["expires_in"])
             response["expires_at"] = expires_at
@@ -176,7 +174,6 @@ class AuthResponseHandler:
         # request usually does return a new refresh token, but add the previous one if not
         if "refresh_token" not in response and refresh_token:
             response["refresh_token"] = refresh_token
-        print("INSIDE", response)
 
     def load_response_from_file(self) -> JSON | None:
         """Load a stored response from given path"""

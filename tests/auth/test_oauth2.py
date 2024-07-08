@@ -423,7 +423,6 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
             mocker: MockerFixture,
     ):
         async def request_token(params: dict[str, Any], **__) -> dict[str, str]:
-            print(params)
             if params["grant_type"] == "refresh_token":
                 return {authoriser.response_handler.token_key: "refresh"}
             return {authoriser.response_handler.token_key: "request"}
