@@ -5,6 +5,9 @@ from collections.abc import Awaitable
 from aiorequestful.types import Headers
 
 
+_DEFAULT_SERVICE_NAME = "unknown_service"
+
+
 class Authoriser(ABC):
     """
     Base interface for authenticating and authorising access to a service over HTTP.
@@ -12,7 +15,7 @@ class Authoriser(ABC):
     :param service_name: The service name for which to authorise.
     """
 
-    def __init__(self, service_name: str = "unknown service"):
+    def __init__(self, service_name: str = _DEFAULT_SERVICE_NAME):
         #: The :py:class:`logging.Logger` for this  object
         self.logger: logging.Logger = logging.getLogger(__name__)
 
