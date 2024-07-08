@@ -5,14 +5,14 @@ from contextlib import contextmanager, asynccontextmanager
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
-from typing import MutableMapping, Any, Literal, Generator, Coroutine, Callable, Awaitable
+from typing import MutableMapping, Any, Literal, Generator, Coroutine, Callable, Awaitable, Unpack
 
 from aiohttp import ClientSession, ClientResponse
 from yarl import URL
 
 from aiorequestful.exception import AuthoriserError
 from aiorequestful.types import MethodInput, URLInput, Method, Headers, ImmutableHeaders, MutableJSON, ImmutableJSON, \
-    JSON
+    JSON, Request
 
 
 class AuthRequest:
@@ -25,7 +25,7 @@ class AuthRequest:
     :param **kwargs: Any other kwargs required for a successful request.
     """
 
-    def __init__(self, method: MethodInput, url: URLInput, **kwargs):
+    def __init__(self, method: MethodInput, url: URLInput, **kwargs: Unpack[Request]):
         self.method = Method.get(method)
         self.url = URL(url)
 

@@ -9,7 +9,7 @@ import logging
 from collections.abc import Mapping, Callable
 from datetime import datetime, timedelta
 from http import HTTPStatus
-from typing import Any, Self
+from typing import Any, Self, Unpack
 from urllib.parse import unquote
 
 import aiohttp
@@ -22,7 +22,7 @@ from aiorequestful.cache.backend import ResponseCache
 from aiorequestful.cache.session import CachedSession
 from aiorequestful.exception import RequestError, ResponseError
 
-from aiorequestful.types import JSON, URLInput, Headers, MethodInput, Method
+from aiorequestful.types import JSON, URLInput, Headers, MethodInput, Method, Request
 
 
 class RequestHandler:
@@ -145,7 +145,7 @@ class RequestHandler:
         """Close the current session. No more requests will be possible once this has been called."""
         await self.session.close()
 
-    async def request(self, method: MethodInput, url: URLInput, **kwargs) -> JSON:
+    async def request(self, method: MethodInput, url: URLInput, **kwargs: Unpack[Request]) -> JSON:
         """
         Generic method for handling API requests with back-off on failed requests.
         See :py:func:`request` for more arguments.

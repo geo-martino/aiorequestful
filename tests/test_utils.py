@@ -1,3 +1,4 @@
+# noinspection PyProtectedMember
 from aiorequestful._utils import get_iterator
 
 
