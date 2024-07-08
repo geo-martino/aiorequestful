@@ -61,7 +61,7 @@ class Method(Enum):
         return cls.from_name(method)
 
 
-class Request(TypedDict):
+class RequestKwargs(TypedDict):
     method: MethodInput
     url: URLInput
     params: NotRequired[Mapping[str, str]]

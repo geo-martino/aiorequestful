@@ -12,7 +12,7 @@ from yarl import URL
 
 from aiorequestful.exception import AuthoriserError
 from aiorequestful.types import MethodInput, URLInput, Method, Headers, ImmutableHeaders, MutableJSON, ImmutableJSON, \
-    JSON, Request
+    JSON, RequestKwargs
 
 
 class AuthRequest:
@@ -25,7 +25,7 @@ class AuthRequest:
     :param **kwargs: Any other kwargs required for a successful request.
     """
 
-    def __init__(self, method: MethodInput, url: URLInput, **kwargs: Unpack[Request]):
+    def __init__(self, method: MethodInput, url: URLInput, **kwargs: Unpack[RequestKwargs]):
         self.method = Method.get(method)
         self.url = URL(url)
 
