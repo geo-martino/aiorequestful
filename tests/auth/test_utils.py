@@ -294,8 +294,8 @@ class TestAuthResponseTester:
     ):
         # defaults to valid when test not set to run
         assert not response_tester.request
-        assert response_tester._test_token(None)
-        assert response_tester._test_token({"Authorization": "Basic invalid"})
+        assert await response_tester._test_token(None)
+        assert await response_tester._test_token({"Authorization": "Basic invalid"})
 
         response_tester.request = test_request
         response_tester.response_test = self.response_test
