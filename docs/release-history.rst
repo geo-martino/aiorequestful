@@ -48,6 +48,14 @@ Changed
   to match this interface
 
 
+0.1.1
+=====
+
+Changed
+-------
+* Method as str for logging on :py:class:`.RequestHandler`
+
+
 0.1.0
 =====
 
