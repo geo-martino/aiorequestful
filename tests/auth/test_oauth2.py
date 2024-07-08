@@ -1,5 +1,6 @@
 import re
 import socket
+from pathlib import Path
 from unittest.mock import AsyncMock
 from urllib.parse import unquote
 
@@ -10,11 +11,12 @@ from pytest_mock import MockerFixture
 from yarl import URL
 
 from aiorequestful import MODULE_ROOT
-from aiorequestful.auth import AuthRequest, AuthResponseHandler, AuthResponseTester
+from aiorequestful.auth import AuthRequest
 from aiorequestful.auth.oauth2 import OAuth2AuthCode
 from aiorequestful.exception import AuthoriserError
 from aiorequestful.types import Method, JSON
 from tests.auth.utils import response_enrich_keys
+from tests.utils import path_token
 
 
 class TestOAuth2AuthCode:
@@ -33,45 +35,34 @@ class TestOAuth2AuthCode:
             method=Method.POST,
             url=URL("http://localhost/api/token/refresh"),
         )
-        response_handler = AuthResponseHandler(
 
-        )
-        response_tester = AuthResponseTester(
-
-        )
         return OAuth2AuthCode(
             service_name="test",
             user_request=user_request,
             token_request=token_request,
             refresh_request=refresh_request,
-            response_handler=response_handler,
-            response_tester=response_tester,
-            user_request_redirect_url=URL("http://localhost/redirect"),
-            user_request_redirect_local_port=8080,
+            redirect_uri=URL("http://localhost/redirect"),
         )
 
     @pytest.fixture
-    def auth_response(self) -> JSON:
+    def auth_response(self, authoriser: OAuth2AuthCode) -> JSON:
         return {
-            "access_token": "fake access token",
+            authoriser.response_handler.token_key: "fake access token",
             "token_type": "Bearer",
             "expires_in": 3600,
             "scope": "test-read",
         }
 
-    async def test_authorise_user(self, authoriser: OAuth2AuthCode, mocker: MockerFixture, requests_mock: aioresponses):
+    @pytest.fixture(params=[path_token])
+    def response_file_path(self, path: Path) -> Path:
+        """Yield the temporary path for the token response JSON file"""
+        return path
+
+    @pytest.fixture
+    def user_auth_code(self, authoriser: OAuth2AuthCode, mocker: MockerFixture, requests_mock: aioresponses) -> str:
         socket_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         mocker.patch.object(socket.socket, attribute="accept", return_value=(socket_listener, None))
         mocker.patch.object(socket.socket, attribute="send")
-        code = "test-code"
-
-        def handle_user_request_successfully(url: str):
-            """Check the URL given to the webopen call and patch socket response"""
-            assert url.startswith(str(authoriser.user_request.url))
-            assert unquote(URL(url).query["redirect_uri"]) == str(authoriser.user_request_redirect_url)
-
-            response = f"GET /?code={code}&state={URL(url).query["state"]}"
-            mocker.patch.object(socket.socket, attribute="recv", return_value=response.encode("utf-8"))
 
         requests_mock.add(
             method=authoriser.user_request.method.name,
@@ -79,25 +70,81 @@ class TestOAuth2AuthCode:
             repeat=True,
         )
 
-        # successful request
-        mocker.patch(f"{MODULE_ROOT}.auth.oauth2.webopen", new=handle_user_request_successfully)
-        async with ClientSession() as session:
-            assert await authoriser._authorise_user(session) == code
+        return "test-code"
 
-        # bad state response
+    @pytest.fixture
+    def mock_user_auth(self, authoriser: OAuth2AuthCode, mocker: MockerFixture) -> AsyncMock:
+        return mocker.patch.object(
+            authoriser, attribute="_authorise_user", side_effect=AsyncMock(return_value="test-code")
+        )
+
+    @pytest.fixture
+    def mock_request_token(self, authoriser: OAuth2AuthCode, mocker: MockerFixture) -> AsyncMock:
+        return mocker.patch.object(
+            authoriser,
+            attribute="_request_token",
+            side_effect=AsyncMock(return_value={authoriser.response_handler.token_key: "request"})
+        )
+
+    @pytest.fixture
+    def mock_refresh_token(self, authoriser: OAuth2AuthCode, mocker: MockerFixture) -> AsyncMock:
+        return mocker.patch.object(
+            authoriser,
+            attribute="_refresh_token",
+            side_effect=AsyncMock(return_value={authoriser.response_handler.token_key: "refresh"})
+        )
+
+    @pytest.fixture
+    def mock_tester(self, authoriser: OAuth2AuthCode, mocker: MockerFixture) -> AsyncMock:
+        return mocker.patch.object(
+            authoriser, attribute="response_tester", side_effect=AsyncMock(return_value=True)
+        )
+
+    @pytest.fixture
+    def mock_save(self, authoriser: OAuth2AuthCode, mocker: MockerFixture) -> AsyncMock:
+        return mocker.patch.object(authoriser.response_handler, attribute="save_response_to_file")
+
+    ###########################################################################
+    ## User authorisation
+    ###########################################################################
+    async def test_authorise_user_successful(
+            self, authoriser: OAuth2AuthCode, user_auth_code: str, mocker: MockerFixture
+    ):
+        def handle_user_request_successfully(url: str):
+            """Check the URL given to the webopen call and patch socket response"""
+            assert url.startswith(str(authoriser.user_request.url))
+            assert unquote(URL(url).query["redirect_uri"]) == str(authoriser.redirect_uri)
+
+            response = f"GET /?code={user_auth_code}&state={URL(url).query["state"]}"
+            mocker.patch.object(socket.socket, attribute="recv", return_value=response.encode("utf-8"))
+
+        authoriser.socket_handler.port = 8000
+        mocker.patch(f"{MODULE_ROOT}.auth.oauth2.webopen", new=handle_user_request_successfully)
+
+        async with ClientSession() as session:
+            assert await authoriser._authorise_user(session) == user_auth_code
+
+    async def test_authorise_user_with_bad_state_response(
+            self, authoriser: OAuth2AuthCode, user_auth_code: str, mocker: MockerFixture
+    ):
         def handle_user_request_with_bad_state(url: str):
             """Check the URL given to the webopen call and patch socket response"""
             assert url.startswith(str(authoriser.user_request.url))
-            assert unquote(URL(url).query["redirect_uri"]) == str(authoriser.user_request_redirect_url)
+            assert unquote(URL(url).query["redirect_uri"]) == str(authoriser.redirect_uri)
 
-            response = f"GET /?code={code}&state=BadState"
+            response = f"GET /?code={user_auth_code}&state=BadState"
             mocker.patch.object(socket.socket, attribute="recv", return_value=response.encode("utf-8"))
 
+        authoriser.socket_handler.port = 8001
         mocker.patch(f"{MODULE_ROOT}.auth.oauth2.webopen", new=handle_user_request_with_bad_state)
+
         with pytest.raises(AuthoriserError):
             async with ClientSession() as session:
                 await authoriser._authorise_user(session)
 
+    ###########################################################################
+    ## Request/refresh token
+    ###########################################################################
     @staticmethod
     def assert_response(actual: JSON, expected: JSON) -> None:
         assert {k: v for k, v in actual.items() if k not in response_enrich_keys} == expected
@@ -106,7 +153,7 @@ class TestOAuth2AuthCode:
 
     async def test_request_token(self, authoriser: OAuth2AuthCode, auth_response: JSON, requests_mock: aioresponses):
         def exchange_response_for_token(*_, params: dict[str, str], **__) -> CallbackResult:
-            assert params["redirect_uri"] == str(authoriser.user_request_redirect_url)
+            assert params["redirect_uri"] == str(authoriser.redirect_uri)
             assert params["code"] == code
 
             return CallbackResult(payload=auth_response)
@@ -135,30 +182,9 @@ class TestOAuth2AuthCode:
         self.assert_response(response, auth_response)
         assert "refresh_token" not in getattr(authoriser.token_request, "params", {})
 
-    @pytest.fixture
-    def mock_user_auth(self, authoriser: OAuth2AuthCode, mocker: MockerFixture) -> AsyncMock:
-        return mocker.patch.object(
-            authoriser, attribute="_authorise_user", side_effect=AsyncMock(return_value="test-code")
-        )
-
-    @pytest.fixture
-    def mock_request_token(self, authoriser: OAuth2AuthCode, mocker: MockerFixture) -> AsyncMock:
-        return mocker.patch.object(
-            authoriser, attribute="_request_token", side_effect=AsyncMock(return_value={"token": "request"})
-        )
-
-    @pytest.fixture
-    def mock_refresh_token(self, authoriser: OAuth2AuthCode, mocker: MockerFixture) -> AsyncMock:
-        return mocker.patch.object(
-            authoriser, attribute="_refresh_token", side_effect=AsyncMock(return_value={"token": "refresh"})
-        )
-
-    @pytest.fixture
-    def mock_tester(self, authoriser: OAuth2AuthCode, mocker: MockerFixture) -> AsyncMock:
-        return mocker.patch.object(
-            authoriser, attribute="response_tester", side_effect=AsyncMock(return_value=True)
-        )
-
+    ###########################################################################
+    ## Handle invalid loaded response
+    ###########################################################################
     async def test_handle_invalid_loaded_response_with_no_refresh_token(
             self,
             authoriser: OAuth2AuthCode,
@@ -168,14 +194,13 @@ class TestOAuth2AuthCode:
             mock_refresh_token: AsyncMock,
             mock_tester: AsyncMock,
     ):
-        # no refresh token
         assert "refresh_token" not in auth_response
         result, valid = await authoriser._handle_invalid_loaded_response(auth_response)
 
-        assert mock_user_auth.call_count == 1
-        assert mock_request_token.call_count == 1
-        assert mock_refresh_token.call_count == 0
-        assert mock_tester.call_count == 1
+        mock_user_auth.assert_called_once()
+        mock_request_token.assert_called_once()
+        mock_refresh_token.assert_not_called()
+        mock_tester.assert_called_once()
 
         assert result == await mock_request_token()
         assert valid == await mock_tester()
@@ -193,10 +218,10 @@ class TestOAuth2AuthCode:
         auth_response["refresh_token"] = "token"
         result, valid = await authoriser._handle_invalid_loaded_response(auth_response)
 
-        assert mock_user_auth.call_count == 1
-        assert mock_request_token.call_count == 1
-        assert mock_refresh_token.call_count == 0
-        assert mock_tester.call_count == 1
+        mock_user_auth.assert_called_once()
+        mock_request_token.assert_called_once()
+        mock_refresh_token.assert_not_called()
+        mock_tester.assert_called_once()
 
         assert result == await mock_request_token()
         assert valid == await mock_tester()
@@ -210,14 +235,13 @@ class TestOAuth2AuthCode:
             mock_refresh_token: AsyncMock,
             mock_tester: AsyncMock,
     ):
-        # with refresh token and good response
         auth_response["refresh_token"] = "token"
         result, valid = await authoriser._handle_invalid_loaded_response(auth_response)
 
-        assert mock_user_auth.call_count == 0
-        assert mock_request_token.call_count == 0
-        assert mock_refresh_token.call_count == 1
-        assert mock_tester.call_count == 1
+        mock_user_auth.assert_not_called()
+        mock_request_token.assert_not_called()
+        mock_refresh_token.assert_called_once()
+        mock_tester.assert_called_once()
 
         assert result == await mock_refresh_token()
         assert valid == await mock_tester()
@@ -231,10 +255,8 @@ class TestOAuth2AuthCode:
             mock_refresh_token: AsyncMock,
             mocker: MockerFixture,
     ):
-        # with refresh token and bad response
         async def tester(response: dict) -> bool:
-            print(response)
-            if response["token"] == "refresh":
+            if response["access_token"] == "refresh":
                 return False
             return True
 
@@ -244,12 +266,133 @@ class TestOAuth2AuthCode:
         auth_response["refresh_token"] = "token"
         result, valid = await authoriser._handle_invalid_loaded_response(auth_response)
 
-        assert mock_user_auth.call_count == 1
-        assert mock_request_token.call_count == 1
-        assert mock_refresh_token.call_count == 1
+        mock_user_auth.assert_called_once()
+        mock_request_token.assert_called_once()
+        mock_refresh_token.assert_called_once()
 
         assert result == await mock_request_token()
         assert valid
 
-    async def test_authorise(self, authoriser: OAuth2AuthCode, auth_response: JSON, requests_mock: aioresponses):
-        pass
+    ###########################################################################
+    ## Main authorise method
+    ###########################################################################
+    async def test_authorise_uses_loaded_response(
+            self,
+            authoriser: OAuth2AuthCode,
+            response_file_path: Path,
+            auth_response: JSON,
+            mock_user_auth: AsyncMock,
+            mock_request_token: AsyncMock,
+            mock_tester: AsyncMock,
+            mock_save: AsyncMock,
+    ):
+        authoriser.response_handler.response = auth_response
+        assert not authoriser.response_handler.file_path
+
+        await authoriser.authorise()
+
+        mock_user_auth.assert_not_called()
+        mock_request_token.assert_not_called()
+        mock_tester.assert_called_once()
+        mock_save.assert_called_once()
+
+    async def test_authorise_load_from_file(
+            self,
+            authoriser: OAuth2AuthCode,
+            response_file_path: Path,
+            mock_user_auth: AsyncMock,
+            mock_request_token: AsyncMock,
+            mock_tester: AsyncMock,
+            mock_save: AsyncMock,
+    ):
+        assert not authoriser.response_handler.response
+        authoriser.response_handler.file_path = response_file_path
+
+        await authoriser.authorise()
+
+        mock_user_auth.assert_not_called()
+        mock_request_token.assert_not_called()
+        mock_tester.assert_called_once()
+        mock_save.assert_called_once()
+
+    async def test_authorise_loaded_response_invalid(
+            self,
+            authoriser: OAuth2AuthCode,
+            response_file_path: Path,
+            auth_response: JSON,
+            mock_user_auth: AsyncMock,
+            mock_request_token: AsyncMock,
+            mock_save: AsyncMock,
+            mocker: MockerFixture,
+    ):
+        async def tester(response: dict) -> bool:
+            if response[authoriser.response_handler.token_key] == "fake access token":
+                return False
+            return True
+
+        mocker.patch.object(authoriser, attribute="response_tester", new=tester)
+        mock_invalid_handler = mocker.patch.object(
+            authoriser, attribute="_handle_invalid_loaded_response", return_value=(auth_response, True)
+        )
+
+        assert not authoriser.response_handler.response
+        authoriser.response_handler.file_path = response_file_path
+        mock_save = mocker.patch.object(authoriser.response_handler, attribute="save_response_to_file")
+
+        await authoriser.authorise()
+
+        mock_user_auth.assert_not_called()
+        mock_request_token.assert_not_called()
+        mock_invalid_handler.assert_called_once()
+        mock_save.assert_called_once()
+
+    async def test_authorise_new_token(
+            self,
+            authoriser: OAuth2AuthCode,
+            response_file_path: Path,
+            auth_response: JSON,
+            mock_user_auth: AsyncMock,
+            mock_request_token: AsyncMock,
+            mock_tester: AsyncMock,
+    ):
+        assert not authoriser.response_handler.response
+        assert not authoriser.response_handler.file_path
+
+        await authoriser.authorise()
+
+        mock_user_auth.assert_called_once()
+        mock_request_token.assert_called_once()
+        mock_tester.assert_called_once()
+
+    async def test_authorise_no_response(
+            self,
+            authoriser: OAuth2AuthCode,
+            response_file_path: Path,
+            auth_response: JSON,
+            mock_user_auth: AsyncMock,
+            mocker: MockerFixture
+    ):
+        assert not authoriser.response_handler.response
+        assert not authoriser.response_handler.file_path
+
+        mocker.patch.object(authoriser, attribute="_request_token", return_value={})
+
+        with pytest.raises(AuthoriserError, match="not generate or load"):
+            await authoriser.authorise()
+
+    async def test_authorise_invalid_response(
+            self,
+            authoriser: OAuth2AuthCode,
+            response_file_path: Path,
+            auth_response: JSON,
+            mock_user_auth: AsyncMock,
+            mock_request_token: AsyncMock,
+            mocker: MockerFixture
+    ):
+        assert not authoriser.response_handler.response
+        assert not authoriser.response_handler.file_path
+
+        mocker.patch.object(authoriser, attribute="response_tester", side_effect=AsyncMock(return_value=False))
+
+        with pytest.raises(AuthoriserError, match="still not valid"):
+            await authoriser.authorise()

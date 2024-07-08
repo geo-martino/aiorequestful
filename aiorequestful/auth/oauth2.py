@@ -1,16 +1,14 @@
 import logging
-import socket
 import sys
 import uuid
-from collections.abc import Generator
-from contextlib import contextmanager
 from urllib.parse import unquote
 from webbrowser import open as webopen
 
 from aiohttp import ClientSession
 from yarl import URL
 
-from aiorequestful.auth._base import Authoriser, AuthRequest, AuthResponseHandler, AuthResponseTester
+from aiorequestful.auth._base import Authoriser
+from aiorequestful.auth._utils import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
 from aiorequestful.exception import AuthoriserError
 from aiorequestful.types import ImmutableJSON, JSON, URLInput
 
@@ -21,13 +19,12 @@ class OAuth2AuthCode(Authoriser):
 
     :param service_name: The service name for which to authorise.
     :param user_request: Request to initiate user authentication and authorisation through an `/authorize` endpoint.
-    :param user_request_redirect_url: The callback URL to apply to the user request to allow
-        for the retrieval of the authorisation code.
-    :param user_request_redirect_local_port: The port to open on the localhost to listen for the redirect.
-    :param user_request_timeout: The time in seconds to wait for a response from a user
-        authentication request before giving up.
     :param token_request: Request to exchange the authorisation code for an access token.
     :param refresh_request: Request to refresh an access token using the refresh token from the token request response.
+    :param redirect_uri: The callback URL to apply to the user request to allow
+        for the retrieval of the authorisation code.
+        Also sent as a parameter to the token request as part of identity confirmation.
+    :param socket_handler: Opens a socket on localhost to listen for a request on the redirect_url.
     :param response_handler: Handles manipulation and storing of the response from a token exchange.
     :param response_tester: Tests the response given from the token request to ensure the token is valid.
     """
@@ -38,39 +35,40 @@ class OAuth2AuthCode(Authoriser):
             token_request: AuthRequest,
             refresh_request: AuthRequest | None = None,
             service_name: str = "unknown service",
-            response_handler: AuthResponseHandler = AuthResponseHandler(),
-            response_tester: AuthResponseTester = AuthResponseTester(),
-            user_request_redirect_url: URLInput = URL.build(scheme="http", host="localhost", port=8080),
-            user_request_redirect_local_port: int = 8080,
-            user_request_timeout: int = 120,
+            socket_handler: SocketHandler = None,
+            redirect_uri: URLInput = None,
+            response_handler: AuthResponseHandler = None,
+            response_tester: AuthResponseTester = None,
     ):
         super().__init__(service_name=service_name)
 
         #: Request to initiate user authentication and authorisation through an `/authorize` endpoint
         self.user_request = user_request
-        #: The callback URL to apply to the user request to allow for the retrieval of the authorisation code
-        self.user_request_redirect_url = user_request_redirect_url
-        #: The port to open on the localhost to listen for the redirect
-        self.user_request_redirect_local_port = user_request_redirect_local_port
-        #: The time in seconds to wait for a response from a user authentication request before giving up
-        self.user_request_timeout = user_request_timeout
-
         #: Request to exchange the authorisation code for an access token
         self.token_request = token_request
         #: Request to refresh an access token using the refresh token from the token request response
         self.refresh_request = refresh_request
 
+        if redirect_uri is None:
+            redirect_uri = URL.build(scheme="http", host="localhost", port=8080)
+        #: The callback URL to apply to the user request to allow for the retrieval of the authorisation code
+        self.redirect_uri = redirect_uri
+
+        if socket_handler is None:
+            socket_handler = SocketHandler(port=self.redirect_uri.port)
+        #: Opens a socket on localhost to listen for a request on the redirect_url
+        self.socket_handler = socket_handler
+
         #: Handles saving and loading token request responses and generates headers from a token request
-        self.response_handler = response_handler
+        self.response_handler = response_handler if response_handler is not None else AuthResponseHandler()
         #: Tests the response given from the token request to ensure the token is valid
-        self.response_tester = response_tester
+        self.response_tester = response_tester if response_tester is not None else AuthResponseTester()
 
     async def authorise(self):
         response = self.response_handler.response
-        loaded = False
         if not response:
             response = self.response_handler.load_response_from_file()
-            loaded = response is not None and response.items()
+        loaded = response is not None and response.items()
 
         if not loaded:
             self.logger.debug("Saved access token not found. Generating new token...")
@@ -134,19 +132,6 @@ class OAuth2AuthCode(Authoriser):
 
         print(message)
 
-    @contextmanager
-    def _open_socket(self) -> Generator[socket.socket, None, None]:
-        """Set up socket to listen for the callback"""
-        socket_listener = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-        try:
-            socket_listener.bind(("localhost", self.user_request_redirect_local_port))
-            socket_listener.settimeout(self.user_request_timeout)
-            socket_listener.listen(1)
-            yield socket_listener
-        finally:
-            socket_listener.close()
-
     async def _authorise_user(self, session: ClientSession) -> str:
         """
         Get user authentication code by authorising through user's browser.
@@ -157,19 +142,19 @@ class OAuth2AuthCode(Authoriser):
         self.logger.debug("Authorising user privilege access...")
 
         state = str(uuid.uuid4())
-        params = {"redirect_uri": str(self.user_request_redirect_url), "state": state}
+        params = {"redirect_uri": str(self.redirect_uri), "state": state}
 
-        with self._open_socket() as socket_listener, self.user_request.enrich_parameters("params", params):
+        with self.socket_handler as sckt, self.user_request.enrich_parameters("params", params):
             self._display_message(
                 f"\33[1mOpening {self.service_name} in your browser. "
                 f"Log in to {self.service_name}, authorise, and return here after \33[0m"
             )
-            self._display_message(f"\33[1mWaiting for code, timeout in {socket_listener.timeout} seconds... \33[0m")
+            self._display_message(f"\33[1mWaiting for code, timeout in {sckt.timeout} seconds... \33[0m")
 
             # open authorise webpage and wait for the redirect
             async with self.user_request(session=session) as r:
                 webopen(str(r.url))
-            request, _ = socket_listener.accept()
+            request, _ = sckt.accept()
 
             request.send("Code received! You may now close this window".encode("utf-8"))
 
@@ -192,7 +177,7 @@ class OAuth2AuthCode(Authoriser):
         :param code: The code to add to the body parameters of the request.
         :return: The response from the exchange.
         """
-        params = {"code": code, "redirect_uri": str(self.user_request_redirect_url)}
+        params = {"code": code, "redirect_uri": str(self.redirect_uri)}
         with self.token_request.enrich_parameters("params", params):
             async with self.token_request(session=session) as r:
                 response = await r.json()

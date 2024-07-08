@@ -1,5 +1,6 @@
 import json
 import re
+import socket
 from copy import deepcopy
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -10,7 +11,7 @@ from aiohttp import ClientSession, ClientResponse
 from aioresponses import aioresponses, CallbackResult
 from yarl import URL
 
-from aiorequestful.auth import AuthRequest, AuthResponseHandler, AuthResponseTester
+from aiorequestful.auth import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
 from aiorequestful.exception import AuthoriserError
 from aiorequestful.types import Method, JSON, ImmutableHeaders
 from tests.auth.utils import response_enrich_keys
@@ -115,9 +116,9 @@ class TestAuthResponseHandler:
         return path
 
     @pytest.fixture
-    def response(self) -> JSON:
+    def response(self, response_handler: AuthResponseHandler) -> JSON:
         return {
-            "access_token": "fake access token",
+            response_handler.token_key: "fake access token",
             "token_type": "Bearer",
             "expires_in": 3600,
             "scope": "test-read",
@@ -323,3 +324,20 @@ class TestAuthResponseTester:
             },
             headers={"Authorization": "Basic invalid"}
         )
+
+
+class TestSocketHandler:
+
+    @pytest.fixture
+    def socket_handler(self) -> SocketHandler:
+        return SocketHandler()
+
+    def test_context_management(self, socket_handler: SocketHandler):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            assert s.connect_ex(('localhost', socket_handler.port)) != 0  # socket can be opened
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s, socket_handler:
+            assert s.connect_ex(('localhost', socket_handler.port)) == 0  # socket cannot be opened
+
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            assert s.connect_ex(('localhost', socket_handler.port)) != 0  # socket can be opened
