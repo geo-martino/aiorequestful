@@ -22,9 +22,14 @@ from aiorequestful.cache.backend import ResponseCache
 from aiorequestful.cache.session import CachedSession
 from aiorequestful.request.exception import RequestError
 from aiorequestful.response.payload import StringPayloadHandler
-from aiorequestful.response.status import StatusHandler
+from aiorequestful.response.status import StatusHandler, ClientErrorStatusHandler, UnauthorisedStatusHandler, \
+    RateLimitStatusHandler
 from aiorequestful.request.timer import Timer
 from aiorequestful.types import JSON, URLInput, Headers, MethodInput, RequestKwargs
+
+_DEFAULT_RESPONSE_HANDLERS = [
+    UnauthorisedStatusHandler(), RateLimitStatusHandler(), ClientErrorStatusHandler()
+]
 
 
 class RequestHandler[A: Authoriser, RT: Any]:
@@ -138,7 +143,7 @@ class RequestHandler[A: Authoriser, RT: Any]:
         self.payload_handler = payload_handler
 
         self._response_handlers = {}
-        self.response_handlers = response_handlers
+        self.response_handlers = response_handlers if response_handlers is not None else _DEFAULT_RESPONSE_HANDLERS
 
         #: The time to wait after every request, regardless of whether it was successful
         self.wait_timer = wait_timer
