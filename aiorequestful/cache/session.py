@@ -10,7 +10,7 @@ from aiorequestful.cache.backend.base import ResponseCache, ResponseRepository
 from aiorequestful.cache.response import CachedResponse
 from aiorequestful.types import URLInput
 
-ClientSession.__init_subclass__ = lambda *_, **__: _  # WORKAROUND: disables inheritance warning
+ClientSession.__init_subclass__ = lambda *_, **__: _  # WORKAROUND: forces disabling of inheritance warning
 
 
 class CachedSession(ClientSession):
@@ -98,7 +98,7 @@ class CachedSession(ClientSession):
             repository = self.cache.get_repository_from_url(request.url)
             data = repository.serialize(data)
 
-        return CachedResponse(request=request, data=data)
+        return CachedResponse(request=request, payload=data)
 
     def _log_cache_hit(self, request: ClientRequest, response: CachedResponse | None) -> None:
         message = "CACHE HIT" if isinstance(response, CachedResponse) else "HTTP REQUEST"

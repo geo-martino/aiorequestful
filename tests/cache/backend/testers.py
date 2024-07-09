@@ -8,7 +8,7 @@ from aiohttp import ClientResponse, ClientSession
 from faker import Faker
 
 from aiorequestful.cache.backend.base import ResponseRepository, ResponseCache, RequestSettings
-from aiorequestful.exception import CacheError
+from aiorequestful.cache.exception import CacheError
 from tests.cache.backend.utils import MockRequestSettings, MockPaginatedRequestSettings
 
 fake = Faker()

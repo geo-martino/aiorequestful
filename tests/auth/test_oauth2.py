@@ -2,6 +2,7 @@ import re
 import socket
 import uuid
 from abc import ABC, abstractmethod
+from http import HTTPMethod
 from pathlib import Path
 from random import randrange, choice
 from typing import Any
@@ -18,8 +19,8 @@ from aiorequestful import MODULE_ROOT
 from aiorequestful.auth import AuthRequest
 from aiorequestful.auth.oauth2 import OAuth2Authoriser, ClientCredentialsFlow, AuthorisationCodeFlow, \
     AuthorisationCodePKCEFlow
-from aiorequestful.exception import AuthoriserError
-from aiorequestful.types import Method, JSON
+from aiorequestful.auth.exception import AuthoriserError
+from aiorequestful.types import JSON
 from tests.auth.utils import response_enrich_keys
 from tests.utils import path_token
 
@@ -81,7 +82,7 @@ class TestClientCredentialsFlow(OAuth2Tester):
     @pytest.fixture
     def authoriser(self) -> ClientCredentialsFlow:
         token_request = AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL("http://localhost/api/token"),
         )
 
@@ -231,15 +232,15 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
     @pytest.fixture
     def authoriser(self) -> AuthorisationCodeFlow:
         user_request = AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL("http://localhost/authorize"),
         )
         token_request = AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL("http://localhost/api/token"),
         )
         refresh_request = AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL("http://localhost/api/token/refresh"),
         )
 
@@ -577,15 +578,15 @@ class TestAuthorisationCodePKCEFlow(OAuth2Tester):
     @pytest.fixture
     def authoriser(self) -> AuthorisationCodePKCEFlow:
         user_request = AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL("http://localhost/authorize"),
         )
         token_request = AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL("http://localhost/api/token"),
         )
         refresh_request = AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL("http://localhost/api/token/refresh"),
         )
 

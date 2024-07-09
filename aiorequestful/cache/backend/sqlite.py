@@ -15,7 +15,7 @@ from aiorequestful import PROGRAM_NAME
 from aiorequestful._utils import required_modules_installed
 from aiorequestful.cache.backend.base import DEFAULT_EXPIRE, ResponseCache, ResponseRepository, RepositoryRequestType
 from aiorequestful.cache.backend.base import RequestSettings
-from aiorequestful.exception import CacheError
+from aiorequestful.cache.exception import CacheError
 from aiorequestful.types import URLInput
 
 try:

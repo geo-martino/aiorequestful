@@ -1,4 +1,5 @@
 import json
+from http import HTTPMethod
 from typing import Any
 
 import pytest
@@ -14,7 +15,7 @@ class TestCachedResponse:
     def http_request(self) -> ClientRequest:
         """Yields a basic :py:class:`ClientRequest` as a pytest.fixture."""
         return ClientRequest(
-            method="GET", url=URL("https://www.test.com"), headers={"Content-Type": "application/json"}
+            method=HTTPMethod.GET.name, url=URL("https://www.test.com"), headers={"Content-Type": "application/json"}
         )
 
     @pytest.fixture(scope="class")
@@ -29,7 +30,7 @@ class TestCachedResponse:
     @pytest.fixture
     def http_response(self, http_request: ClientRequest, data: dict[str, Any]) -> CachedResponse:
         """Yields the expected response for a given request as a pytest.fixture."""
-        return CachedResponse(request=http_request, data=json.dumps(data))
+        return CachedResponse(request=http_request, payload=json.dumps(data))
 
     async def test_read(self, http_response: CachedResponse, data: dict[str, Any]):
         assert await http_response.read() == json.dumps(data).encode()

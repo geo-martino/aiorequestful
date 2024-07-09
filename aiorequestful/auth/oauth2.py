@@ -5,6 +5,7 @@ import secrets
 import sys
 import uuid
 from abc import ABCMeta
+from http import HTTPMethod
 from typing import Any, Self
 from urllib.parse import unquote
 from webbrowser import open as webopen
@@ -14,8 +15,8 @@ from yarl import URL
 
 from aiorequestful.auth._base import Authoriser, _DEFAULT_SERVICE_NAME
 from aiorequestful.auth._utils import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
-from aiorequestful.exception import AuthoriserError
-from aiorequestful.types import ImmutableJSON, JSON, URLInput, UnitIterable, Method, Headers
+from aiorequestful.auth.exception import AuthoriserError
+from aiorequestful.types import ImmutableJSON, JSON, URLInput, UnitIterable, Headers
 from aiorequestful._utils import get_iterator
 
 
@@ -86,7 +87,7 @@ class ClientCredentialsFlow(OAuth2Authoriser):
         :return: The initialised object.
         """
         token_request = AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL(token_request_url),
             params={
                 "client_id": client_id,
@@ -214,7 +215,7 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
         :return: The initialised object.
         """
         user_request = AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL(user_request_url),
             params={
                 "client_id": client_id,
@@ -222,7 +223,7 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
             }
         )
         token_request = AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL(token_request_url),
             params={
                 "client_id": client_id,
@@ -230,7 +231,7 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
             }
         )
         refresh_request = None if not refresh_request_url else AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL(refresh_request_url),
             params={
                 "client_id": client_id,
@@ -486,7 +487,7 @@ class AuthorisationCodePKCEFlow(AuthorisationCodeFlow):
         :return: The initialised object.
         """
         user_request = AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL(user_request_url),
             params={
                 "client_id": client_id,
@@ -494,14 +495,14 @@ class AuthorisationCodePKCEFlow(AuthorisationCodeFlow):
             }
         )
         token_request = AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL(token_request_url),
             params={
                 "client_id": client_id,
             }
         )
         refresh_request = None if not refresh_request_url else AuthRequest(
-            method=Method.POST,
+            method=HTTPMethod.POST,
             url=URL(refresh_request_url),
             params={
                 "client_id": client_id,

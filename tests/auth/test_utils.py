@@ -3,6 +3,7 @@ import re
 import socket
 from copy import deepcopy
 from datetime import datetime, timedelta
+from http import HTTPMethod
 from pathlib import Path
 from time import sleep
 from typing import Any
@@ -13,8 +14,8 @@ from aioresponses import aioresponses, CallbackResult
 from yarl import URL
 
 from aiorequestful.auth import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
-from aiorequestful.exception import AuthoriserError
-from aiorequestful.types import Method, JSON, ImmutableHeaders
+from aiorequestful.auth.exception import AuthoriserError
+from aiorequestful.types import JSON, ImmutableHeaders
 from tests.auth.utils import response_enrich_keys
 from tests.utils import path_token
 
@@ -23,7 +24,7 @@ class TestAuthRequest:
     @pytest.fixture
     def auth_request(self) -> AuthRequest:
         return AuthRequest(
-            method=Method.GET,
+            method=HTTPMethod.GET,
             url="http://localhost:35000",
         )
 
@@ -247,7 +248,7 @@ class TestAuthResponseTester:
     @pytest.fixture
     def test_request(self) -> AuthRequest:
         return AuthRequest(
-            method=Method.GET,
+            method=HTTPMethod.GET,
             url="http://localhost:35000",
         )
 

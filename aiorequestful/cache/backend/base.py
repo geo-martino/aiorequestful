@@ -10,7 +10,7 @@ from aiohttp import RequestInfo, ClientRequest, ClientResponse
 from dateutil.relativedelta import relativedelta
 
 from aiorequestful._utils import get_iterator
-from aiorequestful.exception import CacheError
+from aiorequestful.cache.exception import CacheError
 from aiorequestful.types import UnitCollection, JSON, URLInput
 
 type CacheRequestType = RequestInfo | ClientRequest | ClientResponse
