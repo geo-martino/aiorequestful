@@ -226,14 +226,14 @@ class RequestHandler[A: Authoriser, RT: Any]:
                     continue
 
                 if response.ok:
-                    data = await self.payload_handler(response)
+                    payload = await self.payload_handler(response)
                     break
 
                 await self._log_response(response=response, method=method, url=url)
                 await self._handle_retry_timer(method=method, url=url, timer=retry_timer)
 
         self._retry_logged = False
-        return data
+        return payload
 
     @contextlib.asynccontextmanager
     async def _request(

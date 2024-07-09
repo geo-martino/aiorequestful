@@ -96,7 +96,7 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
 
     @abstractmethod
     async def commit(self) -> None:
-        """Commit the changes to the data"""
+        """Commit the changes to the repository"""
         raise NotImplementedError
 
     @abstractmethod
@@ -276,7 +276,7 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
 
     @abstractmethod
     async def commit(self) -> None:
-        """Commit the changes to the data"""
+        """Commit the changes to the cache"""
         raise NotImplementedError
 
     @abstractmethod

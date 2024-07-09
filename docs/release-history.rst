@@ -34,6 +34,14 @@ and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0
 0.3.0
 =====
 
+Changed
+-------
+* Rename exceptions: AIORequests... -> AIORequestful...
+* Rename references of payload as ``data`` to ``payload``
+* Abstract and implement response handling, request timer handling, and payload handling
+  in new ``request`` and ``response`` modules.
+* Migrate all resources relating to requests and responses to relevant modules.
+
 Removed
 -------
 * MethodInput enum in favour of http.HTTPMethod
