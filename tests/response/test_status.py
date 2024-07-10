@@ -119,11 +119,11 @@ class TestRateLimitStatusHandler(StatusHandlerTester):
 
         # no retry-after header, increases wait time
         assert not await handler(response_valid, wait_timer=wait_timer, retry_timer=retry_timer)
-        assert wait_timer.value > wait_timer.initial
-        assert wait_timer.value < wait_timer.final
-        assert retry_timer.value == retry_timer.initial
+        assert wait_timer > wait_timer.initial
+        assert wait_timer < wait_timer.final
+        assert retry_timer == retry_timer.initial
 
         # maxes wait time
         assert not await handler(response_valid, wait_timer=wait_timer, retry_timer=retry_timer)
-        assert wait_timer.value == wait_timer.final
-        assert retry_timer.value == retry_timer.initial
+        assert wait_timer == wait_timer.final
+        assert retry_timer == retry_timer.initial

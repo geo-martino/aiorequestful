@@ -3,7 +3,6 @@ Implements a cache backend for an SQLite database.
 """
 from __future__ import annotations
 
-import json
 import os
 from collections.abc import Mapping, Callable, Generator
 from datetime import datetime, timedelta
@@ -171,7 +170,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
         ))
         async with self.connection.execute(query, (datetime.now().isoformat(),)) as cur:
             async for row in cur:
-                yield row[:-1], self.deserialize(row[-1])
+                yield row[:-1], await self.deserialize(row[-1])
 
     async def get_response(self, request: RepositoryRequestType[K]) -> V | None:
         key = self.get_key_from_request(request)
@@ -190,9 +189,9 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
 
         if not row:
             return
-        return self.deserialize(row[0])
+        return await self.deserialize(row[0])
 
-    async def _set_item_from_key_value_pair(self, __key: K, __value: Any) -> None:
+    async def _set_item_from_key_value_pair(self, __key: K, __value: V) -> None:
         columns = (
             *self._primary_key_columns,
             self.name_column,
@@ -208,10 +207,10 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
         ))
         params = (
             *__key,
-            self.settings.get_name(self.deserialize(__value)),
+            self.settings.get_name(await self.deserialize(__value)),
             datetime.now().isoformat(),
             self.expire.isoformat(),
-            self.serialize(__value)
+            await self.serialize(__value),
         )
 
         await self.connection.execute(query, params)
@@ -226,24 +225,6 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
         async with self.connection.execute(query, key) as cur:
             count = cur.rowcount
         return count > 0
-
-    def serialize(self, value: Any) -> V | None:
-        if isinstance(value, str):
-            try:
-                value = json.loads(value)
-            except json.decoder.JSONDecodeError:
-                return
-
-        return json.dumps(value, indent=2)
-
-    def deserialize(self, value: V | dict) -> dict | None:
-        if isinstance(value, dict):
-            return value
-
-        try:
-            return json.loads(value)
-        except (json.decoder.JSONDecodeError, TypeError):
-            return
 
 
 class SQLiteCache(ResponseCache[SQLiteTable]):

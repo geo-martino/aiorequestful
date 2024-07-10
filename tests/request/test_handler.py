@@ -19,7 +19,7 @@ from aiorequestful.request.exception import RequestError
 from aiorequestful.request.handler import RequestHandler
 from aiorequestful.request.timer import StepCountTimer, Timer
 from aiorequestful.response.exception import ResponseError
-from aiorequestful.response.payload import JSONPayloadHandler
+from aiorequestful.response.payload import JSONPayloadHandler, StringPayloadHandler
 from aiorequestful.response.status import ClientErrorStatusHandler, RateLimitStatusHandler, UnauthorisedStatusHandler
 from tests.cache.backend.utils import MockResponseRepositorySettings
 
@@ -45,7 +45,10 @@ class TestRequestHandler:
     def request_handler(self, authoriser: Authoriser, cache: ResponseCache) -> RequestHandler:
         """Yield a simple :py:class:`RequestHandler` object"""
         return RequestHandler.create(
-            authoriser=authoriser, cache=cache, headers={"Content-Type": "application/json"}
+            authoriser=authoriser,
+            cache=cache,
+            headers={"Content-Type": "application/json"},
+            payload_handler=JSONPayloadHandler(),
         )
 
     @pytest.fixture
@@ -102,10 +105,10 @@ class TestRequestHandler:
 
         timer_new = request_handler.retry_timer
         assert id(timer_new) != id(request_handler._retry_timer)
-        assert timer_new.value == timer_new.initial != request_handler._retry_timer.value
+        assert float(timer_new) == timer_new.initial != float(request_handler._retry_timer)
 
         def _handle_retry_timer(*_, timer: Timer | None, **__) -> None:
-            if timer is None or not timer.can_increase or timer.value == 0:
+            if timer is None or not timer.can_increase or timer == 0:
                 raise RequestError("Max retries exceeded")
             timer.increase()
 
@@ -120,7 +123,7 @@ class TestRequestHandler:
 
             timer_call = mock_handle_retry_timer.call_args.kwargs["timer"]
             assert id(timer_call) != id(request_handler._retry_timer) != id(request_handler.retry_timer)
-            assert timer_call.value == timer_call.final
+            assert timer_call == timer_call.final
 
     async def test_response_handling(self, request_handler: RequestHandler, dummy_response: ClientResponse):
         request_handler.response_handlers = [
@@ -147,7 +150,8 @@ class TestRequestHandler:
         requests_mock.get(url, payload=expected_json, repeat=True)
 
         async with request_handler as handler:
-            repository = await handler.session.cache.create_repository(MockResponseRepositorySettings(name="test"))
+            repository_settings = MockResponseRepositorySettings(name="test", payload_handler=handler.payload_handler)
+            repository = await handler.session.cache.create_repository(repository_settings)
             handler.session.cache.repository_getter = lambda _, __: repository
 
             async with handler._request(method=HTTPMethod.GET, url=url, persist=False) as response:
@@ -185,6 +189,7 @@ class TestRequestHandler:
 
         async with request_handler as handler:
             # default payload handler returns as string
+            handler.payload_handler = StringPayloadHandler()
             assert await handler.request(method=HTTPMethod.GET, url=url) == json.dumps(expected_json)
 
         mock_handle_response.assert_called_once()

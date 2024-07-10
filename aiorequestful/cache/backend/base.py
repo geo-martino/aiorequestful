@@ -5,7 +5,7 @@ import asyncio
 import logging
 from abc import ABCMeta, abstractmethod
 from collections.abc import MutableMapping, Callable, Collection, AsyncIterable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Self, Unpack
 
@@ -14,7 +14,9 @@ from dateutil.relativedelta import relativedelta
 
 from aiorequestful._utils import get_iterator
 from aiorequestful.cache.exception import CacheError
-from aiorequestful.types import UnitCollection, JSON, URLInput, RequestKwargs
+from aiorequestful.response.exception import PayloadHandlerError
+from aiorequestful.response.payload import PayloadHandler, StringPayloadHandler
+from aiorequestful.types import UnitCollection, URLInput, RequestKwargs
 
 type CacheRequestType = RequestInfo | ClientRequest | ClientResponse
 type RepositoryRequestType[K] = K | CacheRequestType
@@ -23,10 +25,12 @@ DEFAULT_EXPIRE: timedelta = timedelta(weeks=1)
 
 
 @dataclass
-class ResponseRepositorySettings(metaclass=ABCMeta):
+class ResponseRepositorySettings[V](metaclass=ABCMeta):
     """Settings for a response type from a given endpoint to be used to configure a repository in the cache backend."""
     #: That name of the repository in the backend
     name: str
+    #: Handles payload data conversion to/from expected format for de/serialization.
+    payload_handler: PayloadHandler[V] = field(default=StringPayloadHandler())
 
     @property
     @abstractmethod
@@ -50,7 +54,7 @@ class ResponseRepositorySettings(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def get_name(response: JSON) -> str | None:
+    def get_name(payload: V) -> str | None:
         """Extracts the name to assign to a cache entry in the repository from a given ``response``."""
         raise NotImplementedError
 
@@ -89,15 +93,20 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    def __init__(self, settings: ResponseRepositorySettings, expire: timedelta | relativedelta = DEFAULT_EXPIRE):
+    def __init__(
+            self,
+            settings: ResponseRepositorySettings[V],
+            expire: timedelta | relativedelta = DEFAULT_EXPIRE,
+    ):
         #: The :py:class:`logging.Logger` for this  object
         self.logger: logging.Logger = logging.getLogger(__name__)
 
         #: The settings to use to identify and interact with the repository in the backend.
         self.settings = settings
+        self._expire = expire
+
         #: The current connection to the backend.
         self.connection = None
-        self._expire = expire
 
     @abstractmethod
     def __await__(self) -> Self:
@@ -141,15 +150,33 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    @abstractmethod
-    def serialize(self, value: Any) -> V:
-        """Serialize a given ``value`` to a type that can be persisted to the repository."""
-        raise NotImplementedError
+    async def serialize(self, value: Any) -> V | None:
+        """
+        Serialize a given ``value`` to a type that can be persisted to the repository.
 
-    @abstractmethod
-    def deserialize(self, value: V) -> Any:
-        """Deserialize a value from the repository to the expected response value type."""
-        raise NotImplementedError
+        :return: Serialized object if serializing is possible, None otherwise.
+        """
+        if value is None:
+            return
+
+        try:
+            return await self.settings.payload_handler.serialize(value)
+        except PayloadHandlerError:
+            return
+
+    async def deserialize(self, value: V | None) -> Any:
+        """
+        Deserialize a value from the repository to the expected response value type.
+
+        :return: Deserialized object if deserializing is possible, None otherwise.
+        """
+        if value is None:
+            return
+
+        try:
+            return await self.settings.payload_handler.deserialize(value)
+        except PayloadHandlerError:
+            return
 
     @abstractmethod
     def get_key_from_request(self, request: RepositoryRequestType[K]) -> K:
@@ -184,7 +211,9 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         key = self.get_key_from_request(response)
         if not key:
             return
-        await self._set_item_from_key_value_pair(key, await response.text())
+
+        payload: V = await self.serialize(await self.deserialize(response))
+        await self._set_item_from_key_value_pair(key, payload)
 
     @abstractmethod
     async def _set_item_from_key_value_pair(self, __key: K, __value: Any) -> None:

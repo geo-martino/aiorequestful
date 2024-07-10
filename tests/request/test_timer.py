@@ -30,29 +30,29 @@ class TimerTester(ABC):
     def test_increased(timer_initial: Timer):
         assert timer_initial.can_increase
 
-        initial_value = timer_initial.value
+        initial_value = float(timer_initial)
         initial_counter = timer_initial.counter
 
         assert timer_initial.increase()
-        assert timer_initial.value > initial_value
+        assert timer_initial > initial_value
         assert timer_initial.counter == initial_counter + 1
 
     @staticmethod
     def test_not_increased(timer_final: Timer):
         assert not timer_final.can_increase
 
-        initial_value = timer_final.value
+        initial_value = float(timer_final)
         assert not timer_final.increase()
-        assert timer_final.value == initial_value
+        assert timer_final == initial_value
 
     @staticmethod
     def test_basic_properties(timer_initial: Timer, timer_final: Timer, timer_infinite: Timer):
-        assert timer_initial.value == timer_initial.initial
+        assert timer_initial == timer_initial.initial
         assert timer_initial.counter == 0
         assert timer_initial.count_remaining == timer_initial.count
-        assert timer_initial.total_remaining == timer_initial.total - timer_initial.value
+        assert timer_initial.total_remaining == timer_initial.total - float(timer_initial)
 
-        assert round(timer_final.value, 2) == round(timer_final.final, 2)
+        assert round(timer_final, 2) == round(timer_final.final, 2)
         assert timer_final.count == timer_final.counter
         assert timer_final.count_remaining == 0
         assert timer_final.total_remaining == 0
@@ -72,12 +72,12 @@ class TimerTester(ABC):
     @staticmethod
     def test_copy(timer_final: Timer):
         timer_copy = copy(timer_final)
-        assert timer_copy.value == timer_final.value
+        assert timer_copy == float(timer_final)
         assert timer_copy.counter == timer_final.counter
 
         timer_deepcopy = deepcopy(timer_final)
-        assert timer_deepcopy.value < timer_final.value
-        assert timer_deepcopy.value == timer_final.initial
+        assert timer_deepcopy < float(timer_final)
+        assert timer_deepcopy == timer_final.initial
         assert timer_deepcopy.counter == 0
 
 
@@ -112,7 +112,7 @@ class TestStepCountTimer(CountTimerTester):
         timer.increase()
         timer.increase()
 
-        assert timer.value == 8
+        assert int(timer) == 8
         assert timer.counter == 2
         assert timer.count_remaining == 3
         assert timer.total_remaining == sum([11, 14, 17])
@@ -133,7 +133,7 @@ class TestGeometricCountTimer(CountTimerTester):
         timer.increase()
         timer.increase()
 
-        assert timer.value == 4
+        assert int(timer) == 4
         assert timer.counter == 2
         assert timer.count_remaining == 4
         assert timer.total_remaining == sum([8, 16, 32, 64])
@@ -154,7 +154,7 @@ class TestPowerCountTimer(CountTimerTester):
         timer.increase()
         timer.increase()
 
-        assert timer.value == 16
+        assert int(timer) == 16
         assert timer.counter == 2
         assert timer.count_remaining == 1
         assert timer.total_remaining == 256
@@ -191,7 +191,7 @@ class TestStepCeilingTimer(CeilingTimerTester):
         timer.increase()
         timer.increase()
 
-        assert timer.value == 5
+        assert int(timer) == 5
         assert timer.counter == 2
         assert timer.count_remaining == 3
         assert timer.total_remaining == sum([7, 9, 9.5])
@@ -212,7 +212,7 @@ class TestGeometricCeilingTimer(CeilingTimerTester):
         timer.increase()
         timer.increase()
 
-        assert timer.value == 4
+        assert int(timer) == 4
         assert timer.counter == 2
         assert timer.count_remaining == 4
         assert timer.total_remaining == sum([8, 16, 32, 50])
@@ -233,7 +233,7 @@ class TestPowerCeilingTimer(CeilingTimerTester):
         timer.increase()
         timer.increase()
 
-        assert timer.value == 16
+        assert int(timer) == 16
         assert timer.counter == 2
         assert timer.count_remaining == 1
         assert timer.total_remaining == 50

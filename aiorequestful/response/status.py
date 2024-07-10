@@ -154,7 +154,7 @@ class RateLimitStatusHandler(StatusHandler):
         if retry_timer is not None and wait_seconds > retry_timer.total:  # exception if too long
             raise ResponseError(
                 "Rate limit exceeded and wait time is greater than remaining timeout "
-                f"of {retry_timer.total_remaining} seconds. Retry again at {wait_dt_str}"
+                f"of {retry_timer.total_remaining:.2f} seconds. Retry again at {wait_dt_str}"
             )
 
         if not self._wait_logged:
@@ -170,10 +170,10 @@ class RateLimitStatusHandler(StatusHandler):
         if wait_timer.increase():
             self._log(
                 response=response,
-                message=f"Increasing wait time between requests to {wait_timer.value:.2f}s"
+                message=f"Increasing wait time between requests to {float(wait_timer):.2f}s"
             )
         else:
             self._log(
                 response=response,
-                message=f"Cannot increase wait time. Already at maximum of {wait_timer.value:.2f}s"
+                message=f"Cannot increase wait time. Already at maximum of {float(wait_timer):.2f}s"
             )

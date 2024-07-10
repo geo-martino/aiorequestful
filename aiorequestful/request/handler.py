@@ -21,7 +21,7 @@ from aiorequestful.auth import Authoriser
 from aiorequestful.cache.backend import ResponseCache
 from aiorequestful.cache.session import CachedSession
 from aiorequestful.request.exception import RequestError
-from aiorequestful.response.payload import StringPayloadHandler
+from aiorequestful.response.payload import StringPayloadHandler, PayloadHandler
 from aiorequestful.response.status import StatusHandler, ClientErrorStatusHandler, UnauthorisedStatusHandler, \
     RateLimitStatusHandler
 from aiorequestful.request.timer import Timer
@@ -57,7 +57,7 @@ class RequestHandler[A: Authoriser, RT: Any]:
         "_connector",
         "_session",
         "authoriser",
-        "payload_handler",
+        "_payload_handler",
         "_response_handlers",
         "wait_timer",
         "_retry_timer",
@@ -74,6 +74,21 @@ class RequestHandler[A: Authoriser, RT: Any]:
         """The :py:class:`ClientSession` object if it exists and is open."""
         if not self.closed:
             return self._session
+
+    @property
+    def payload_handler(self) -> PayloadHandler:
+        """Handles a response according to its status, payload, headers, etc."""
+        return self._payload_handler
+
+    @payload_handler.setter
+    def payload_handler(self, value: PayloadHandler):
+        self._payload_handler = value
+
+        if isinstance(self._session, CachedSession):
+            for repository in self._session.cache.values():
+                # all repositories must use the same payload handler as the request handler
+                # for it to function correctly
+                repository.settings.payload_handler = self._payload_handler
 
     @property
     def response_handlers(self) -> dict[int, StatusHandler]:
@@ -105,7 +120,7 @@ class RequestHandler[A: Authoriser, RT: Any]:
             cls,
             authoriser: A | None = None,
             cache: ResponseCache | None = None,
-            payload_handler: Callable[[ClientResponse], RT] = None,
+            payload_handler: PayloadHandler = None,
             response_handlers: Sequence[StatusHandler] = (),
             wait_timer: Timer = None,
             retry_timer: Timer = None,
@@ -131,7 +146,7 @@ class RequestHandler[A: Authoriser, RT: Any]:
             self,
             connector: Callable[[], aiohttp.ClientSession],
             authoriser: A | None = None,
-            payload_handler: Callable[[ClientResponse], RT] = None,
+            payload_handler: PayloadHandler = None,
             response_handlers: Sequence[StatusHandler] = (),
             wait_timer: Timer = None,
             retry_timer: Timer = None,
@@ -145,10 +160,8 @@ class RequestHandler[A: Authoriser, RT: Any]:
         #: The :py:class:`Authoriser` object
         self.authoriser = authoriser
 
-        if payload_handler is None:
-            payload_handler = StringPayloadHandler()
         #: Handles payload data conversion to return response payload in expected format
-        self.payload_handler = payload_handler
+        self.payload_handler = payload_handler if payload_handler is not None else StringPayloadHandler()
 
         self._response_handlers = {}
         self.response_handlers = response_handlers if response_handlers is not None else _DEFAULT_RESPONSE_HANDLERS
@@ -164,6 +177,9 @@ class RequestHandler[A: Authoriser, RT: Any]:
 
         if self.closed:
             self._session = self._connector()
+
+        # force setting payload handler on all cache repositories
+        self.payload_handler = self.payload_handler
 
         await self.session.__aenter__()
         await self.authorise()
@@ -241,7 +257,7 @@ class RequestHandler[A: Authoriser, RT: Any]:
                     continue
 
                 if response.ok:
-                    payload = await self.payload_handler(response)
+                    payload: RT = await self.payload_handler(response)
                     break
 
                 await self._log_response(response=response, method=method, url=url)
@@ -315,26 +331,26 @@ class RequestHandler[A: Authoriser, RT: Any]:
             response=response,
             authoriser=self.authoriser,
             session=self.session,
-            payload_handler=self.payload_handler,
+            payload_deserializer=self.payload_handler,
             wait_timer=self.wait_timer,
             retry_timer=retry_timer,
         )
 
     async def _handle_retry_timer(self, method: HTTPMethod, url: URLInput, timer: Timer | None) -> None:
-        if timer is None or not timer.can_increase or timer.value == 0:
+        if timer is None or not timer.can_increase or timer == 0:
             raise RequestError("Max retries exceeded")
 
         if not self._retry_logged:
             self.logger.warning(
                 f"\33[93mRequest failed. Will retry request {timer.count_remaining} more times "
-                f"and timeout in {timer.total_remaining} seconds...\33[0m"
+                f"and timeout in {timer.total_remaining:.2f} seconds...\33[0m"
             )
             self._retry_logged = True
 
         self.log(
             method=method.name,
             url=url,
-            message=f"Request failed: retrying in {timer.value} seconds..."
+            message=f"Request failed: retrying in {int(timer):.2f} seconds..."
         )
         await timer
         timer.increase()

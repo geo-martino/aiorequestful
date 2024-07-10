@@ -1,5 +1,6 @@
 import sqlite3
 from abc import ABCMeta, abstractmethod
+from collections.abc import Iterable
 from random import choice, randrange
 from typing import Any
 
@@ -9,7 +10,9 @@ from faker import Faker
 
 from aiorequestful.cache.backend.base import ResponseRepository, ResponseCache, ResponseRepositorySettings
 from aiorequestful.cache.exception import CacheError
+from aiorequestful.response.payload import PayloadHandler, StringPayloadHandler, JSONPayloadHandler
 from tests.cache.backend.utils import MockResponseRepositorySettings, MockPaginatedRequestSettings
+from tests.utils import ParamTester, idfn
 
 fake = Faker()
 
@@ -19,8 +22,13 @@ REQUEST_SETTINGS = [
 ]
 
 
-class BaseResponseTester(metaclass=ABCMeta):
-    """Base functionality for all test suites related to `api.cache` package."""
+class BaseResponseTester(ParamTester, metaclass=ABCMeta):
+    """Base functionality for all test suites related to the ``cache`` package."""
+
+    @pytest.fixture(scope="class", params=[StringPayloadHandler(), JSONPayloadHandler(indent=2)], ids=idfn)
+    def payload_handler(self, request) -> PayloadHandler:
+        """Yields the :py:class:`PayloadHandler` to apply to the :py:class:`RequestSettings`"""
+        return request.param
 
     @staticmethod
     @abstractmethod
@@ -35,7 +43,7 @@ class BaseResponseTester(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def generate_item(settings: ResponseRepositorySettings) -> tuple[Any, Any]:
+    async def generate_item[V: Any](settings: ResponseRepositorySettings[V]) -> tuple[Iterable[Any], V]:
         """
         Randomly generates an item (key, value) appropriate for the given ``settings``
         that can be persisted to the repository.
@@ -44,8 +52,8 @@ class BaseResponseTester(metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def generate_response_from_item(
-            cls, settings: ResponseRepositorySettings, key: Any, value: Any, session: ClientSession = None
+    async def generate_response_from_item[V: Any](
+            cls, settings: ResponseRepositorySettings[V], key: Any, value: V, session: ClientSession = None
     ) -> ClientResponse:
         """
         Generates a :py:class:`ClientResponse` appropriate for the given ``settings``
@@ -55,8 +63,8 @@ class BaseResponseTester(metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    def generate_bad_response_from_item(
-            cls, settings: ResponseRepositorySettings, key: Any, value: Any, session: ClientSession = None
+    async def generate_bad_response_from_item[V: Any](
+            cls, settings: ResponseRepositorySettings[V], key: Any, value: V, session: ClientSession = None
     ) -> ClientResponse:
         """
         Generates a bad :py:class:`ClientResponse` appropriate for the given ``settings``
@@ -70,32 +78,38 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
 
     # noinspection PyArgumentList
     @pytest.fixture(scope="class", params=REQUEST_SETTINGS)
-    def settings(self, request) -> ResponseRepositorySettings:
+    def settings(self, request, payload_handler: PayloadHandler) -> ResponseRepositorySettings:
         """
         Yields the :py:class:`RequestSettings` to use when creating a new :py:class:`ResponseRepository`
         as a pytest.fixture.
         """
         cls: type[ResponseRepositorySettings] = request.param
-        return cls(name="test")
+        return cls(name="test", payload_handler=payload_handler)
 
     @pytest.fixture(scope="class")
-    def valid_items(self, settings: ResponseRepositorySettings) -> dict:
+    async def valid_items[V: Any](self, settings: ResponseRepositorySettings[V]) -> dict[Iterable[Any], V]:
         """Yields expected items to be found in the repository that have not expired as a pytest.fixture."""
-        return dict(self.generate_item(settings) for _ in range(randrange(3, 6)))
+        return dict([await self.generate_item(settings) for _ in range(randrange(3, 6))])
 
     @pytest.fixture(scope="class")
-    def invalid_items(self, settings: ResponseRepositorySettings) -> dict:
+    async def invalid_items[V: Any](self, settings: ResponseRepositorySettings[V]) -> dict[Iterable[Any], V]:
         """Yields expected items to be found in the repository that have passed the expiry time as a pytest.fixture."""
-        return dict(self.generate_item(settings) for _ in range(randrange(3, 6)))
+        return dict([await self.generate_item(settings) for _ in range(randrange(3, 6))])
 
     @pytest.fixture(scope="class")
-    def items(self, valid_items: dict, invalid_items: dict) -> dict:
+    def items[V: Any](
+            self, valid_items: dict[Iterable[Any], V], invalid_items: dict[Iterable[Any], V]
+    ) -> dict[Iterable[Any], V]:
         """Yields all expected items to be found in the repository as a pytest.fixture."""
         return valid_items | invalid_items
 
     @abstractmethod
-    async def repository(
-            self, connection: Any, settings: ResponseRepositorySettings, valid_items: dict, invalid_items: dict
+    async def repository[V: Any](
+            self,
+            connection: Any,
+            settings: ResponseRepositorySettings[V],
+            valid_items: dict[Iterable[Any], V],
+            invalid_items: dict[Iterable[Any], V],
     ) -> ResponseRepository:
         """
         Yields a valid :py:class:`ResponseRepository` to use throughout tests in this suite as a pytest_asyncio.fixture.
@@ -126,32 +140,44 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
         assert await repository.count() == 0
         assert not await repository.contains(key)
 
-    @abstractmethod
-    def test_serialize(self, repository: ResponseRepository):
-        raise NotImplementedError
+    async def test_serialize(self, repository: ResponseRepository):
+        _, value = await self.generate_item(repository.settings)
+        value_serialized = await repository.serialize(value)
 
-    @abstractmethod
-    def test_deserialize(self, repository: ResponseRepository):
-        raise NotImplementedError
+        assert await repository.serialize(value_serialized) == value_serialized
 
-    def test_get_key_from_request(self, repository: ResponseRepository):
-        key, value = self.generate_item(repository.settings)
-        request = self.generate_response_from_item(repository.settings, key, value).request_info
+        assert await repository.serialize(None) is None
+
+    # noinspection PyTypeChecker
+    async def test_deserialize(self, repository: ResponseRepository):
+        _, value = await self.generate_item(repository.settings)
+        value_str = await repository.serialize(value)
+        value_deserialized = await repository.deserialize(value_str)
+
+        assert await repository.deserialize(value_deserialized) == value
+
+        assert await repository.deserialize(None) is None
+
+    async def test_get_key_from_request(self, repository: ResponseRepository):
+        key, value = await self.generate_item(repository.settings)
+        request = (await self.generate_response_from_item(repository.settings, key, value)).request_info
         assert repository.get_key_from_request(request) == key
 
-    def test_get_key_from_invalid_request(self, repository: ResponseRepository):
-        key, value = self.generate_item(repository.settings)
-        request = self.generate_bad_response_from_item(repository.settings, key, value).request_info
+    async def test_get_key_from_invalid_request(self, repository: ResponseRepository):
+        key, value = await self.generate_item(repository.settings)
+        request = (await self.generate_bad_response_from_item(repository.settings, key, value)).request_info
         assert repository.get_key_from_request(request) is None
 
     @staticmethod
     async def test_get_responses_from_keys(repository: ResponseRepository, valid_items: dict):
         key, value = choice(list(valid_items.items()))
-        assert await repository.get_response(key) == value
-        assert await repository.get_responses(valid_items.keys()) == list(valid_items.values())
+        assert await repository.get_response(key) == await repository.deserialize(value)
+        assert await repository.get_responses(valid_items.keys()) == [
+            await repository.deserialize(v) for v in valid_items.values()
+        ]
 
     async def test_get_response_on_missing(self, repository: ResponseRepository, valid_items: dict):
-        key, value = self.generate_item(repository.settings)
+        key, value = await self.generate_item(repository.settings)
         assert not await repository.contains(key)
 
         assert await repository.get_response(key) is None
@@ -159,37 +185,39 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
 
     async def test_get_responses_from_requests(self, repository: ResponseRepository, valid_items: dict):
         key, value = choice(list(valid_items.items()))
-        request = self.generate_response_from_item(repository.settings, key, value).request_info
+        request = (await self.generate_response_from_item(repository.settings, key, value)).request_info
         assert await repository.get_response(request) == value
 
         requests = [
-            self.generate_response_from_item(repository.settings, key, value).request_info
+            (await self.generate_response_from_item(repository.settings, key, value)).request_info
             for key, value in valid_items.items()
         ]
         assert await repository.get_responses(requests) == list(valid_items.values())
 
     async def test_get_response_from_responses(self, repository: ResponseRepository, valid_items: dict):
         key, value = choice(list(valid_items.items()))
-        response = self.generate_response_from_item(repository.settings, key, value)
+        response = await self.generate_response_from_item(repository.settings, key, value)
         assert await repository.get_response(response) == value
 
         responses = [
-            self.generate_response_from_item(repository.settings, key, value) for key, value in valid_items.items()
+            await self.generate_response_from_item(repository.settings, key, value)
+            for key, value in valid_items.items()
         ]
         assert await repository.get_responses(responses) == list(valid_items.values())
 
     async def test_get_response_from_responses_on_missing(self, repository: ResponseRepository, valid_items: dict):
         key, value = choice(list(valid_items.items()))
-        response = self.generate_bad_response_from_item(repository.settings, key, value)
+        response = await self.generate_bad_response_from_item(repository.settings, key, value)
         assert await repository.get_response(response) is None
 
         responses = [
-            self.generate_bad_response_from_item(repository.settings, key, value) for key, value in valid_items.items()
+            await self.generate_bad_response_from_item(repository.settings, key, value)
+            for key, value in valid_items.items()
         ]
         assert await repository.get_responses(responses) == []
 
     async def test_set_item_from_key_value_pair(self, repository: ResponseRepository):
-        items = [self.generate_item(repository.settings) for _ in range(randrange(3, 6))]
+        items = [await self.generate_item(repository.settings) for _ in range(randrange(3, 6))]
         assert all([not await repository.contains(key) for key, _ in items])
 
         for key, value in items:
@@ -200,7 +228,7 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
             assert await repository.get_response(key) == value
 
     async def test_save_response_from_collection(self, repository: ResponseRepository):
-        key, value = self.generate_item(repository.settings)
+        key, value = await self.generate_item(repository.settings)
         assert not await repository.contains(key)
 
         await repository.save_response((key, value))
@@ -208,8 +236,8 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
         assert await repository.get_response(key) == value
 
     async def test_save_response_from_response(self, repository: ResponseRepository):
-        key, value = self.generate_item(repository.settings)
-        response = self.generate_response_from_item(repository.settings, key, value)
+        key, value = await self.generate_item(repository.settings)
+        response = await self.generate_response_from_item(repository.settings, key, value)
         assert not await repository.contains(key)
 
         await repository.save_response(response)
@@ -217,15 +245,15 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
         assert await repository.get_response(key) == value
 
     async def test_save_response_fails_silently(self, repository: ResponseRepository):
-        key, value = self.generate_item(repository.settings)
+        key, value = await self.generate_item(repository.settings)
         assert not await repository.contains(key)
 
-        response = self.generate_bad_response_from_item(repository.settings, key, value)
+        response = await self.generate_bad_response_from_item(repository.settings, key, value)
         await repository.save_response(response)
         assert not await repository.contains(key)
 
     async def test_save_responses_from_mapping(self, repository: ResponseRepository):
-        items = dict(self.generate_item(repository.settings) for _ in range(randrange(3, 6)))
+        items = dict([await self.generate_item(repository.settings) for _ in range(randrange(3, 6))])
         assert all([not await repository.contains(key) for key in items])
 
         await repository.save_responses(items)
@@ -234,8 +262,11 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
             assert await repository.get_response(key) == value
 
     async def test_save_responses_from_responses(self, repository: ResponseRepository):
-        items = dict(self.generate_item(repository.settings) for _ in range(randrange(3, 6)))
-        responses = [self.generate_response_from_item(repository.settings, key, value) for key, value in items.items()]
+        items = dict([await self.generate_item(repository.settings) for _ in range(randrange(3, 6))])
+        responses = [
+            await self.generate_response_from_item(repository.settings, key, value)
+            for key, value in items.items()
+        ]
         assert all([not await repository.contains(key) for key in items])
 
         await repository.save_responses(responses)
@@ -244,17 +275,18 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
             assert await repository.get_response(key) == value
 
     async def test_save_responses_fails_silently(self, repository: ResponseRepository):
-        items = dict(self.generate_item(repository.settings) for _ in range(randrange(3, 6)))
+        items = dict([await self.generate_item(repository.settings) for _ in range(randrange(3, 6))])
         assert all([not await repository.contains(key) for key in items])
 
         responses = [
-            self.generate_bad_response_from_item(repository.settings, key, value) for key, value in items.items()
+            await self.generate_bad_response_from_item(repository.settings, key, value)
+            for key, value in items.items()
         ]
         await repository.save_responses(responses)
         assert all([not await repository.contains(key) for key in items])
 
     async def test_delete_response_on_missing(self, repository: ResponseRepository):
-        key, value = self.generate_item(repository.settings)
+        key, value = await self.generate_item(repository.settings)
         assert not await repository.contains(key)
         assert not await repository.delete_response(key)
 
@@ -268,7 +300,7 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
 
     async def test_delete_response_from_request(self, repository: ResponseRepository, valid_items: dict):
         key, value = choice(list(valid_items.items()))
-        request = self.generate_response_from_item(repository.settings, key, value).request_info
+        request = (await self.generate_response_from_item(repository.settings, key, value)).request_info
         assert await repository.contains(key)
 
         assert await repository.delete_response(request)
@@ -276,7 +308,7 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
 
     async def test_delete_responses_from_requests(self, repository: ResponseRepository, valid_items: dict):
         requests = [
-            self.generate_response_from_item(repository.settings, key, value).request_info
+            (await self.generate_response_from_item(repository.settings, key, value)).request_info
             for key, value in valid_items.items()
         ]
         for key in valid_items:
@@ -288,7 +320,7 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
 
     async def test_delete_response_from_response(self, repository: ResponseRepository, valid_items: dict):
         key, value = choice(list(valid_items.items()))
-        response = self.generate_response_from_item(repository.settings, key, value)
+        response = await self.generate_response_from_item(repository.settings, key, value)
         assert await repository.contains(key)
 
         assert await repository.delete_response(response)
@@ -296,7 +328,7 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
 
     async def test_delete_responses_from_responses(self, repository: ResponseRepository, valid_items: dict):
         responses = [
-            self.generate_response_from_item(repository.settings, key, value)
+            await self.generate_response_from_item(repository.settings, key, value)
             for key, value in valid_items.items()
         ]
         for key in valid_items:
@@ -312,14 +344,14 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
 
     # noinspection PyArgumentList
     @staticmethod
-    def generate_settings() -> ResponseRepositorySettings:
+    def generate_settings(payload_handler: PayloadHandler) -> ResponseRepositorySettings:
         """Randomly generates a :py:class:`RequestSettings` object that can be used to create a repository."""
         cls: type[ResponseRepositorySettings] = choice(REQUEST_SETTINGS)
-        return cls(name="".join(fake.random_letters(20)))
+        return cls(name="".join(fake.random_letters(20)), payload_handler=payload_handler)
 
     @staticmethod
     @abstractmethod
-    def generate_response(settings: ResponseRepositorySettings, session: ClientSession = None) -> ClientResponse:
+    async def generate_response(settings: ResponseRepositorySettings, session: ClientSession = None) -> ClientResponse:
         """
         Randomly generates a :py:class:`ClientResponse` appropriate for the given ``settings``
         that can be persisted to the repository.
@@ -328,7 +360,7 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
 
     @classmethod
     @abstractmethod
-    async def generate_cache(cls) -> ResponseCache:
+    async def generate_cache(cls, payload_handler: PayloadHandler) -> ResponseCache:
         """
         Generates a :py:class:`ResponseCache` for this backend type
         with many randomly generated :py:class:`ResponseRepository` objects assigned
@@ -338,9 +370,9 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
 
     # noinspection PyTestUnpassedFixture
     @pytest.fixture
-    async def cache(self) -> ResponseCache:
+    async def cache(self, payload_handler: PayloadHandler) -> ResponseCache:
         """Yields a valid :py:class:`ResponseCache` to use throughout tests in this suite as a pytest.fixture."""
-        async with self.generate_cache() as cache:
+        async with self.generate_cache(payload_handler=payload_handler) as cache:
             yield cache
 
     @staticmethod
@@ -355,11 +387,11 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
         for repository in cache.values():
             assert await repository.count()
 
-    async def test_context_management(self, cache: ResponseCache):
+    async def test_context_management(self, cache: ResponseCache, payload_handler: PayloadHandler):
         # does not create repository backend resource until awaited or entered
-        settings = self.generate_settings()
+        settings = self.generate_settings(payload_handler=payload_handler)
         while settings.name in cache:
-            settings = self.generate_settings()
+            settings = self.generate_settings(payload_handler=payload_handler)
 
         repository = cache.create_repository(settings)
 
@@ -368,9 +400,9 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
         await cache
         await repository.count()
 
-        settings = self.generate_settings()
+        settings = self.generate_settings(payload_handler=payload_handler)
         while settings.name in cache:
-            settings = self.generate_settings()
+            settings = self.generate_settings(payload_handler=payload_handler)
 
         repository = cache.create_repository(settings)
 
@@ -379,10 +411,10 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
         async with cache:
             await repository.count()
 
-    async def test_create_repository(self, cache: ResponseCache):
-        settings = self.generate_settings()
+    async def test_create_repository(self, cache: ResponseCache, payload_handler: PayloadHandler):
+        settings = self.generate_settings(payload_handler=payload_handler)
         while settings.name in cache:
-            settings = self.generate_settings()
+            settings = self.generate_settings(payload_handler=payload_handler)
 
         # noinspection PyAsyncCall
         cache.create_repository(settings)
@@ -395,31 +427,31 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
             # noinspection PyAsyncCall
             cache.create_repository(repository.settings)
 
-    def test_get_repository_for_url(self, cache: ResponseCache):
+    async def test_get_repository_for_url(self, cache: ResponseCache):
         repository = choice(list(cache.values()))
-        url = self.generate_response(repository.settings).request_info.url
+        url = (await self.generate_response(repository.settings)).request_info.url
 
         assert cache.get_repository_from_url(url).settings.name == repository.settings.name
         assert cache.get_repository_from_url(f"http://www.does-not-exist.com/{fake.word()}/{fake.uuid4(str)}") is None
         cache.repository_getter = None
         assert cache.get_repository_from_url(url) is None
 
-    def test_get_repository_for_requests(self, cache: ResponseCache):
+    async def test_get_repository_for_requests(self, cache: ResponseCache):
         repository = choice(list(cache.values()))
-        requests = [self.generate_response(repository.settings).request_info for _ in range(3, 6)]
+        requests = [(await self.generate_response(repository.settings)).request_info for _ in range(3, 6)]
         assert cache.get_repository_from_requests(requests) == repository
 
-    def test_get_repository_for_responses(self, cache: ResponseCache):
+    async def test_get_repository_for_responses(self, cache: ResponseCache, payload_handler: PayloadHandler):
         repository = choice(list(cache.values()))
-        responses = [self.generate_response(repository.settings) for _ in range(3, 6)]
+        responses = [await self.generate_response(repository.settings) for _ in range(3, 6)]
         assert cache.get_repository_from_requests(responses).settings.name == repository.settings.name
 
-        new_settings = self.generate_settings()
-        new_responses = [self.generate_response(new_settings) for _ in range(3, 6)]
+        new_settings = self.generate_settings(payload_handler=payload_handler)
+        new_responses = [await self.generate_response(new_settings) for _ in range(3, 6)]
         assert cache.get_repository_from_requests(new_responses) is None
 
         with pytest.raises(CacheError):  # multiple types given
-            cache.get_repository_from_requests(responses + new_responses)
+            assert cache.get_repository_from_requests(responses + new_responses)
 
         cache.repository_getter = None
         assert cache.get_repository_from_requests(responses) is None
@@ -427,12 +459,12 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
     async def test_repository_operations(self, cache: ResponseCache):
         repository = choice(list(cache.values()))
 
-        response = self.generate_response(repository.settings)
+        response = await self.generate_response(repository.settings)
         key = repository.get_key_from_request(response.request_info)
         await cache.save_response(response)
         assert await repository.contains(key)
 
-        assert await cache.get_response(response) == repository.deserialize(await response.text())
+        assert await cache.get_response(response) == await repository.deserialize(response)
 
         assert await cache.delete_response(response)
         assert not await repository.contains(key)

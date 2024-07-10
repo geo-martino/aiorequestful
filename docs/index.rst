@@ -2,8 +2,8 @@
 Welcome to aiorequestful!
 =========================
 
-An Asynchronous RESTful API requests framework for asyncio and Python
----------------------------------------------------------------------
+An Asynchronous HTTP and RESTful API requests framework for asyncio and Python
+------------------------------------------------------------------------------
 
 
 Features
@@ -14,16 +14,18 @@ Features
 What's in this documentation
 ----------------------------
 
-* How to guides on getting started with AIOReqestful and other key functionality of the package
+* Guides on getting started with AIOReqestful and other key functionality of the package (*Coming soon...*)
 * Release history
 * How to get started with contributing to AIOReqestful
 * Reference documentation
 
-.. include:: howto.install.rst
+.. include:: guides.install.rst
 
 .. toctree::
    :maxdepth: 1
-   :caption: 📜 How to...
+   :caption: 📜 Guides & Getting Started
+
+   guides.install
 
 .. toctree::
    :maxdepth: 1
