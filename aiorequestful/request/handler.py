@@ -2,6 +2,7 @@
 All operations relating to handling of requests to an HTTP service.
 """
 from __future__ import annotations
+
 import contextlib
 import inspect
 import json
@@ -21,10 +22,10 @@ from aiorequestful.auth import Authoriser
 from aiorequestful.cache.backend import ResponseCache
 from aiorequestful.cache.session import CachedSession
 from aiorequestful.request.exception import RequestError
+from aiorequestful.request.timer import Timer
 from aiorequestful.response.payload import StringPayloadHandler, PayloadHandler
 from aiorequestful.response.status import StatusHandler, ClientErrorStatusHandler, UnauthorisedStatusHandler, \
     RateLimitStatusHandler
-from aiorequestful.request.timer import Timer
 from aiorequestful.types import JSON, URLInput, Headers, MethodInput, RequestKwargs
 
 _DEFAULT_RESPONSE_HANDLERS = [

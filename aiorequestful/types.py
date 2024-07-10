@@ -2,6 +2,7 @@
 All core type hints to use throughout the entire package.
 """
 from __future__ import annotations
+
 from collections.abc import Iterable, Sequence, MutableSequence, Collection, Mapping, MutableMapping, Callable, \
     Awaitable
 from http import HTTPMethod

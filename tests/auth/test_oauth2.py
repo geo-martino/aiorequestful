@@ -16,9 +16,9 @@ from pytest_mock import MockerFixture
 from yarl import URL
 
 from aiorequestful import MODULE_ROOT
+from aiorequestful.auth.exception import AuthoriserError
 from aiorequestful.auth.oauth2 import OAuth2Authoriser, ClientCredentialsFlow, AuthorisationCodeFlow, \
     AuthorisationCodePKCEFlow
-from aiorequestful.auth.exception import AuthoriserError
 from aiorequestful.auth.utils import AuthRequest, AuthResponseHandler
 from aiorequestful.types import JSON
 from tests.auth.utils import response_enrich_keys

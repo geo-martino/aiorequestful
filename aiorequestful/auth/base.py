@@ -7,7 +7,6 @@ from collections.abc import Awaitable
 
 from aiorequestful.types import Headers
 
-
 _DEFAULT_SERVICE_NAME = "unknown_service"
 
 

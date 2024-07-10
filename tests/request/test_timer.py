@@ -3,9 +3,9 @@ from copy import copy, deepcopy
 
 import pytest
 
-from aiorequestful.request.timer import Timer
-from aiorequestful.request.timer import CountTimer, StepCountTimer, GeometricCountTimer, PowerCountTimer
 from aiorequestful.request.timer import CeilingTimer, StepCeilingTimer, GeometricCeilingTimer, PowerCeilingTimer
+from aiorequestful.request.timer import CountTimer, StepCountTimer, GeometricCountTimer, PowerCountTimer
+from aiorequestful.request.timer import Timer
 
 
 class TimerTester(ABC):

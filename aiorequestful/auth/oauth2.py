@@ -18,11 +18,11 @@ from webbrowser import open as webopen
 from aiohttp import ClientSession
 from yarl import URL
 
-from aiorequestful.auth.base import Authoriser, _DEFAULT_SERVICE_NAME
-from aiorequestful.auth.utils import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
-from aiorequestful.auth.exception import AuthoriserError
-from aiorequestful.types import ImmutableJSON, JSON, URLInput, UnitIterable, Headers
 from aiorequestful._utils import get_iterator
+from aiorequestful.auth.base import Authoriser, _DEFAULT_SERVICE_NAME
+from aiorequestful.auth.exception import AuthoriserError
+from aiorequestful.auth.utils import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
+from aiorequestful.types import ImmutableJSON, JSON, URLInput, UnitIterable, Headers
 
 
 class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):

@@ -4,13 +4,13 @@ Authoriser specific utilities which can be used to build implementations of auth
 import json
 import logging
 import socket
+from collections.abc import MutableMapping, Generator, Coroutine, Callable, Awaitable
 from contextlib import contextmanager, asynccontextmanager
 from copy import deepcopy
 from datetime import datetime
 from http import HTTPMethod
 from pathlib import Path
 from typing import Any, Literal, Unpack
-from collections.abc import MutableMapping, Generator, Coroutine, Callable, Awaitable
 
 from aiohttp import ClientSession, ClientResponse
 from yarl import URL
