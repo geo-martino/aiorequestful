@@ -22,7 +22,7 @@ type UnitSequence[T] = T | Sequence[T]
 type UnitMutableSequence[T] = T | MutableSequence[T]
 type UnitList[T] = T | list[T]
 
-type Number = int | float
+Number = int | float
 
 type ImmutableHeaders = Mapping[str, str]
 type MutableHeaders = MutableMapping[str, str]

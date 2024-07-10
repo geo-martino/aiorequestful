@@ -297,7 +297,7 @@ class CeilingTimer(Timer, metaclass=ABCMeta):
 
     @property
     def can_increase(self) -> bool:
-        return self.final is None or isinstance(self.final, (int, float)) and self._value < self.final
+        return self.final is None or isinstance(self.final, Number) and self._value < self.final
 
     def __init__(self, initial: Number = 1, final: Number = None):
         super().__init__(initial=initial)
