@@ -13,7 +13,7 @@
 [![GitHub - Deployment](https://github.com/{program_owner_user}/{program_name_lower}/actions/workflows/deploy.yml/badge.svg?event=release)](https://github.com/{program_owner_user}/{program_name_lower}/actions/workflows/deploy.yml)
 [![GitHub - Documentation](https://github.com/{program_owner_user}/{program_name_lower}/actions/workflows/docs_publish.yml/badge.svg)](https://github.com/{program_owner_user}/{program_name_lower}/actions/workflows/docs_publish.yml)
 
-### An Asynchronous HTTP and RESTful API requests framework for asyncio and Python
+### An asynchronous HTTP and RESTful API requests framework for asyncio and Python
 
 ## Contents
 * [Getting Started](#quick-guides)
