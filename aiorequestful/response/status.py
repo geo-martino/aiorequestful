@@ -19,6 +19,8 @@ class StatusHandler(ABC):
     according to its status, payload, headers, etc.
     """
 
+    __slots__ = ("logger",)
+
     @property
     @abstractmethod
     def status_codes(self) -> list[int]:
@@ -71,6 +73,8 @@ class StatusHandler(ABC):
 class ClientErrorStatusHandler(StatusHandler):
     """Handles status codes which cannot be handled, raising an error."""
 
+    __slots__ = ()
+
     @property
     def status_codes(self) -> list[int]:
         return [status.value for status in HTTPStatus if 400 <= status.value < 500]
@@ -84,6 +88,8 @@ class ClientErrorStatusHandler(StatusHandler):
 
 class UnauthorisedStatusHandler(StatusHandler):
     """Handles unauthorised response status codes by re-authorising credentials through an :py:class:`Authoriser`."""
+
+    __slots__ = ()
 
     @property
     def status_codes(self) -> list[int]:
@@ -110,13 +116,15 @@ class UnauthorisedStatusHandler(StatusHandler):
 class RateLimitStatusHandler(StatusHandler):
     """Handles rate limits by increasing a timer value for every response that returns a rate limit status."""
 
+    __slots__ = ("_wait_logged",)
+
     @property
     def status_codes(self) -> list[int]:
         return [429]
 
     def __init__(self):
         super().__init__()
-        self.wait_logged = False
+        self._wait_logged = False
 
     async def handle(
             self,
@@ -142,12 +150,12 @@ class RateLimitStatusHandler(StatusHandler):
                 f"of {retry_timer.total_remaining} seconds. Retry again at {wait_dt_str}"
             )
 
-        if not self.wait_logged:
+        if not self._wait_logged:
             self.logger.warning(f"\33[93mRate limit exceeded. Retrying again at {wait_dt_str}\33[0m")
-            self.wait_logged = True
+            self._wait_logged = True
 
         await asyncio.sleep(wait_seconds)
-        self.wait_logged = False
+        self._wait_logged = False
 
         return True
 

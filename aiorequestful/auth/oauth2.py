@@ -22,6 +22,8 @@ from aiorequestful._utils import get_iterator
 
 class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
 
+    __slots__ = ("token_request", "response_handler", "response_tester")
+
     def __init__(
             self,
             token_request: AuthRequest,
@@ -67,6 +69,8 @@ class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
 
 
 class ClientCredentialsFlow(OAuth2Authoriser):
+
+    __slots__ = ()
 
     @classmethod
     def create(
@@ -189,6 +193,8 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
     :param response_handler: Handles manipulation and storing of the response from a token exchange.
     :param response_tester: Tests the response given from the token request to ensure the token is valid.
     """
+
+    __slots__ = ("user_request", "refresh_request", "redirect_uri", "socket_handler")
 
     @classmethod
     def create(
@@ -463,6 +469,8 @@ class AuthorisationCodePKCEFlow(AuthorisationCodeFlow):
     :param response_handler: Handles manipulation and storing of the response from a token exchange.
     :param response_tester: Tests the response given from the token request to ensure the token is valid.
     """
+
+    __slots__ = ("code_verifier",)
 
     @classmethod
     def create(
