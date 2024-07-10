@@ -191,7 +191,7 @@ class TestSQLiteCache(SQLiteTester, ResponseCacheTester):
 
                 repository = await SQLiteTable(settings=settings, connection=cache.connection)
                 for k, v in items.items():
-                    await repository._set_item_from_key_value_pair(k, v)
+                    await repository._set_item_from_key_value_pair(k, await repository.serialize(v))
                 cache[settings.name] = repository
 
             await cache.commit()

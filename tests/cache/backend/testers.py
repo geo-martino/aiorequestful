@@ -221,7 +221,7 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
         assert all([not await repository.contains(key) for key, _ in items])
 
         for key, value in items:
-            await repository._set_item_from_key_value_pair(key, value)
+            await repository._set_item_from_key_value_pair(key, await repository.serialize(value))
 
         assert all([await repository.contains(key) for key, _ in items])
         for key, value in items:

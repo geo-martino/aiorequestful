@@ -93,11 +93,7 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    def __init__(
-            self,
-            settings: ResponseRepositorySettings[V],
-            expire: timedelta | relativedelta = DEFAULT_EXPIRE,
-    ):
+    def __init__(self, settings: ResponseRepositorySettings[V], expire: timedelta | relativedelta = DEFAULT_EXPIRE):
         #: The :py:class:`logging.Logger` for this  object
         self.logger: logging.Logger = logging.getLogger(__name__)
 
@@ -205,7 +201,7 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         """Save the given ``response`` to this repository if a key can be extracted from it. Safely fail if not"""
         if isinstance(response, Collection):
             key, value = response
-            await self._set_item_from_key_value_pair(key, value)
+            await self._set_item_from_key_value_pair(key, await self.serialize(value))
             return
 
         key = self.get_key_from_request(response)
@@ -225,7 +221,10 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         Safely fail on those that can't.
         """
         if isinstance(responses, Mapping):
-            tasks = (self._set_item_from_key_value_pair(key, value) for key, value in responses.items())
+            tasks = [
+                self._set_item_from_key_value_pair(key, await self.serialize(value))
+                for key, value in responses.items()
+            ]
         else:
             tasks = map(self.save_response, responses)
 

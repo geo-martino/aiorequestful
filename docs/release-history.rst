@@ -38,12 +38,18 @@ and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0
 Changed
 -------
 * :py:class:`.Timer` now supports int and float operations.
+* All cache backends no longer rely on JSON based payloads and have been made generic enough
+  to support all :py:class:`.PayloadHandler` implementations.
 
 Removed
 -------
 * ``value`` property on :py:class:`.Timer` in favour of using builtin ``int`` and ``float`` calls
   to get the timer value.
 
+Documentation
+-------
+* Add standard info for installing
+* Expand and reformat index
 
 0.4.0
 =====

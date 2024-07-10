@@ -210,7 +210,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
             self.settings.get_name(await self.deserialize(__value)),
             datetime.now().isoformat(),
             self.expire.isoformat(),
-            await self.serialize(__value),
+            __value,
         )
 
         await self.connection.execute(query, params)

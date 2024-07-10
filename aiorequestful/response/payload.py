@@ -18,7 +18,7 @@ class PayloadHandler[T: Any](ABC):
     __slots__ = ()
 
     @abstractmethod
-    async def serialize(self, payload: T) -> str:
+    async def serialize(self, payload: str | bytes | bytearray | T) -> str:
         """Serialize the payload object to a string."""
         return json.dumps(payload, indent=2)
 
@@ -43,8 +43,8 @@ class JSONPayloadHandler(PayloadHandler[JSON]):
     def __init__(self, indent: int = None):
         self.indent = indent
 
-    async def serialize(self, payload: JSON) -> str:
-        if isinstance(payload, str):
+    async def serialize(self, payload: str | bytes | bytearray | JSON) -> str:
+        if isinstance(payload, str | bytes | bytearray):
             try:
                 payload = json.loads(payload)
             except (json.decoder.JSONDecodeError, TypeError):
@@ -70,7 +70,9 @@ class StringPayloadHandler(PayloadHandler[str]):
 
     __slots__ = ()
 
-    async def serialize(self, payload: str) -> str:
+    async def serialize(self, payload: str | bytes | bytearray) -> str:
+        if isinstance(payload, bytes | bytearray):
+            return payload.decode()
         return str(payload)
 
     async def deserialize(self, response: str | bytes | bytearray | ClientResponse) -> str:
@@ -81,5 +83,7 @@ class StringPayloadHandler(PayloadHandler[str]):
                 return response.decode()
             case ClientResponse():
                 return await response.text()
+            case None:
+                raise PayloadHandlerError(f"Unrecognised input type: {response}")
             case _:
                 return str(response)

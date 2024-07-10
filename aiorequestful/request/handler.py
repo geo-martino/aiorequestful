@@ -331,7 +331,7 @@ class RequestHandler[A: Authoriser, RT: Any]:
             response=response,
             authoriser=self.authoriser,
             session=self.session,
-            payload_deserializer=self.payload_handler,
+            payload_handler=self.payload_handler,
             wait_timer=self.wait_timer,
             retry_timer=retry_timer,
         )
