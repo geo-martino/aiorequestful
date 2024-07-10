@@ -201,15 +201,14 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         """Save the given ``response`` to this repository if a key can be extracted from it. Safely fail if not"""
         if isinstance(response, Collection):
             key, value = response
-            await self._set_item_from_key_value_pair(key, await self.serialize(value))
-            return
+        else:
+            key = self.get_key_from_request(response)
+            if not key:
+                return
 
-        key = self.get_key_from_request(response)
-        if not key:
-            return
+            value: V = await self.deserialize(response)
 
-        payload: V = await self.serialize(await self.deserialize(response))
-        await self._set_item_from_key_value_pair(key, payload)
+        await self._set_item_from_key_value_pair(key, await self.serialize(value))
 
     @abstractmethod
     async def _set_item_from_key_value_pair(self, __key: K, __value: Any) -> None:
@@ -249,7 +248,7 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         return sum(await tasks)
 
 
-class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=ABCMeta):
+class ResponseCache[R: ResponseRepository](MutableMapping[str, R], metaclass=ABCMeta):
     """
     Represents a backend cache of many repositories, providing a dict-like interface for interacting with them.
 
@@ -278,7 +277,7 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
     def __init__(
             self,
             cache_name: str,
-            repository_getter: Callable[[Self, URLInput], ST] = None,
+            repository_getter: Callable[[Self, URLInput], R] = None,
             expire: timedelta | relativedelta = DEFAULT_EXPIRE,
     ):
         super().__init__()
@@ -290,7 +289,7 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
         #: The expiry time to apply to cached responses after which responses are invalidated.
         self.expire = expire
 
-        self._repositories: dict[str, ST] = {}
+        self._repositories: dict[str, R] = {}
 
     @abstractmethod
     def __await__(self) -> Self:
@@ -343,12 +342,12 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
         """
         raise NotImplementedError
 
-    def get_repository_from_url(self, url: URLInput) -> ST | None:
+    def get_repository_from_url(self, url: URLInput) -> R | None:
         """Returns the repository to use from the stored repositories in this cache for the given ``url``."""
         if self.repository_getter is not None:
             return self.repository_getter(self, url)
 
-    def get_repository_from_requests(self, requests: UnitCollection[CacheRequestType]) -> ST | None:
+    def get_repository_from_requests(self, requests: UnitCollection[CacheRequestType]) -> R | None:
         """Returns the repository to use from the stored repositories in this cache for the given ``requests``."""
         requests = get_iterator(requests)
         results = {self.get_repository_from_url(request.url) for request in requests}

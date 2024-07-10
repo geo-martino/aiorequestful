@@ -32,7 +32,7 @@ _DEFAULT_RESPONSE_HANDLERS = [
 ]
 
 
-class RequestHandler[A: Authoriser, RT: Any]:
+class RequestHandler[A: Authoriser, P: Any]:
     """
     Generic HTTP request handler.
     Handles error responses, retries on failed requests, authorisation, caching etc.
@@ -125,7 +125,7 @@ class RequestHandler[A: Authoriser, RT: Any]:
             wait_timer: Timer = None,
             retry_timer: Timer = None,
             **session_kwargs
-    ) -> RequestHandler[A, RT]:
+    ) -> RequestHandler[A, P]:
         """Create a new :py:class:`RequestHandler` with an appropriate session ``connector`` given the input kwargs"""
         def connector() -> aiohttp.ClientSession:
             """Create an appropriate session ``connector`` given the input kwargs"""
@@ -233,7 +233,7 @@ class RequestHandler[A: Authoriser, RT: Any]:
 
         self.logger.log(level=level, msg=format_url_log(method=method, url=url, messages=log))
 
-    async def request(self, method: MethodInput, url: URLInput, **kwargs: Unpack[RequestKwargs]) -> RT:
+    async def request(self, method: MethodInput, url: URLInput, **kwargs: Unpack[RequestKwargs]) -> P:
         """
         Generic method for handling HTTP requests handling errors, authorisation, backoff, caching etc. as configured.
         See :py:func:`request` for more arguments.
@@ -257,7 +257,7 @@ class RequestHandler[A: Authoriser, RT: Any]:
                     continue
 
                 if response.ok:
-                    payload: RT = await self.payload_handler(response)
+                    payload: P = await self.payload_handler(response)
                     break
 
                 await self._log_response(response=response, method=method, url=url)

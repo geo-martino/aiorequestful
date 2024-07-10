@@ -73,13 +73,12 @@ class TestCachedSession:
 
         expected = await tester.generate_response_from_item(repository.settings, key, value, session=session)
         request = expected.request_info
-        headers = {"Content-Type": "application/json"}
 
-        async with session.request(method=request.method, url=request.url, headers=headers) as response:
+        async with session.request(method=request.method, url=request.url) as response:
             assert await response.text() == await expected.text()
         requests_mock.assert_not_called()
 
-    async def test_request_not_cached(
+    async def test_repeated_request(
             self,
             session: CachedSession,
             cache: ResponseCache,
@@ -90,26 +89,56 @@ class TestCachedSession:
 
         expected = await tester.generate_response(repository.settings, session=session)
         request = expected.request_info
-        headers = {"Content-Type": "application/json"}
 
         key = repository.get_key_from_request(request)
         assert not await repository.contains(key)
 
         requests_mock.get(request.url, body=await expected.text(), repeat=True)
 
-        async with session.request(method=request.method, url=request.url, headers=headers, persist=False) as response:
+        async with session.request(method=request.method, url=request.url, persist=False) as response:
             assert await response.text() == await expected.text()
         assert len(requests_mock.requests) == 1
         assert sum(map(len, requests_mock.requests.values())) == 1
         assert not await repository.contains(key)
 
-        async with session.request(method=request.method, url=request.url, headers=headers, persist=True) as response:
+        async with session.request(method=request.method, url=request.url, persist=True) as response:
             assert await response.text() == await expected.text()
         assert len(requests_mock.requests) == 1
         assert sum(map(len, requests_mock.requests.values())) == 2
         assert await repository.contains(key)
 
-        async with session.request(method=request.method, url=request.url, headers=headers) as response:
+        async with session.request(method=request.method, url=request.url) as response:
             assert await response.text() == await expected.text()
         assert len(requests_mock.requests) == 1
         assert sum(map(len, requests_mock.requests.values())) == 2
+
+    async def test_bad_response_not_cached(
+            self,
+            session: CachedSession,
+            cache: ResponseCache,
+            tester: ResponseCacheTester,
+            requests_mock: aioresponses,
+    ):
+        repository = choice(list(cache.values()))
+
+        expected = await tester.generate_response(repository.settings, session=session)
+        request = expected.request_info
+
+        key = repository.get_key_from_request(request)
+        assert not await repository.contains(key)
+
+        requests_mock.get(request.url, status=404, body=await expected.text())
+        async with session.request(method=request.method, url=request.url, persist=True) as response:
+            assert await response.text() == await expected.text()
+
+        assert len(requests_mock.requests) == 1
+        assert sum(map(len, requests_mock.requests.values())) == 1
+        assert not await repository.contains(key)
+
+        requests_mock.get(request.url, status=200, body=await expected.text())
+        async with session.request(method=request.method, url=request.url, persist=True) as response:
+            assert await response.text() == await expected.text()
+
+        assert len(requests_mock.requests) == 1
+        assert sum(map(len, requests_mock.requests.values())) == 2
+        assert await repository.contains(key)
