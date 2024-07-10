@@ -5,7 +5,7 @@ from yarl import URL
 from aiorequestful.cache.backend.base import ResponseRepositorySettings
 
 
-class MockResponseRepositorySettings(ResponseRepositorySettings):
+class MockResponseRepositorySettings[V: Any](ResponseRepositorySettings[V]):
 
     @property
     def fields(self) -> tuple[str, ...]:
@@ -17,11 +17,13 @@ class MockResponseRepositorySettings(ResponseRepositorySettings):
         return URL(url).path.split("/")[-1] or None,
 
     @staticmethod
-    def get_name(response: dict[str, Any]) -> str | None:
-        return response.get("name")
+    def get_name(payload: V) -> str | None:
+        if not isinstance(payload, dict):
+            payload = eval(payload)
+        return payload.get("name")
 
 
-class MockPaginatedRequestSettings(MockResponseRepositorySettings):
+class MockPaginatedRequestSettings[V: Any](MockResponseRepositorySettings[V]):
 
     @property
     def fields(self) -> tuple[str, ...]:

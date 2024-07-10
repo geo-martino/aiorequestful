@@ -575,3 +575,8 @@ class AuthorisationCodePKCEFlow(AuthorisationCodeFlow):
             "redirect_uri": str(self.redirect_uri),
             "code_verifier": self.code_verifier
         }
+
+
+OAUTH2_CLASSES: frozenset[type[OAuth2Authoriser]] = frozenset({
+    ClientCredentialsFlow, AuthorisationCodeFlow, AuthorisationCodePKCEFlow,
+})

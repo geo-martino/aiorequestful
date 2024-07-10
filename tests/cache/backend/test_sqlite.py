@@ -1,6 +1,6 @@
 import contextlib
-import json
 import sqlite3
+from collections.abc import Iterable
 from datetime import datetime, timedelta
 from pathlib import Path
 from random import randrange
@@ -16,6 +16,7 @@ from yarl import URL
 from aiorequestful.cache.backend.base import ResponseRepositorySettings
 from aiorequestful.cache.backend.sqlite import SQLiteTable, SQLiteCache
 from aiorequestful.cache.response import CachedResponse
+from aiorequestful.response.payload import PayloadHandler
 from tests.cache.backend.testers import ResponseRepositoryTester, ResponseCacheTester, BaseResponseTester
 from tests.cache.backend.utils import MockPaginatedRequestSettings
 
@@ -30,7 +31,7 @@ class SQLiteTester(BaseResponseTester):
         return aiosqlite.connect(":memory:")
 
     @staticmethod
-    def generate_item(settings: ResponseRepositorySettings) -> tuple[tuple, dict[str, Any]]:
+    async def generate_item[V: Any](settings: ResponseRepositorySettings[V]) -> tuple[tuple[Any, ...], V]:
         key = ("GET", "".join(fake.random_letters(20)),)
 
         value = {
@@ -43,24 +44,30 @@ class SQLiteTester(BaseResponseTester):
         if isinstance(settings, MockPaginatedRequestSettings):
             key = (*key, randrange(0, 100), randrange(1, 50))
 
-        return key, value
+        return key, await settings.payload_handler.deserialize(value)
 
     @classmethod
-    def generate_response_from_item(
-            cls, settings: ResponseRepositorySettings, key: Any, value: Any, session: ClientSession = None
+    async def generate_response_from_item[V: Any](
+            cls, settings: ResponseRepositorySettings[V], key: Any, value: V, session: ClientSession = None
     ) -> ClientResponse:
         url = f"http://test.com/{settings.name}/{key[1]}"
-        return cls._generate_response_from_item(url=url, key=key, value=value, session=session)
+        return await cls._generate_response_from_item(
+            url=url, key=key, value=value, payload_handler=settings.payload_handler, session=session
+        )
 
     @classmethod
-    def generate_bad_response_from_item(
-            cls, settings: ResponseRepositorySettings, key: Any, value: Any, session: ClientSession = None
+    async def generate_bad_response_from_item[V: Any](
+            cls, settings: ResponseRepositorySettings[V], key: Any, value: V, session: ClientSession = None
     ) -> ClientResponse:
         url = "http://test.com"
-        return cls._generate_response_from_item(url=url, key=key, value=value, session=session)
+        return await cls._generate_response_from_item(
+            url=url, key=key, value=value, payload_handler=settings.payload_handler, session=session
+        )
 
     @staticmethod
-    def _generate_response_from_item(url: str, key: Any, value: Any, session: ClientSession = None) -> ClientResponse:
+    async def _generate_response_from_item(
+            url: str, key: Any, value: Any, payload_handler: PayloadHandler, session: ClientSession = None
+    ) -> ClientResponse:
         params = {}
         if len(key) == 4:
             params["offset"] = key[2]
@@ -72,7 +79,6 @@ class SQLiteTester(BaseResponseTester):
                 method=key[0],
                 url=URL(url),
                 params=params,
-                headers={"Content-Type": "application/json"},
                 loop=session._loop,
                 session=session
             )
@@ -81,20 +87,19 @@ class SQLiteTester(BaseResponseTester):
                 method=key[0],
                 url=URL(url),
                 params=params,
-                headers={"Content-Type": "application/json"},
             )
-        return CachedResponse(request=request, payload=json.dumps(value))
+        return CachedResponse(request=request, payload=await payload_handler.serialize(value))
 
 
 class TestSQLiteTable(SQLiteTester, ResponseRepositoryTester):
 
     @pytest.fixture
-    async def repository(
+    async def repository[V: str](
             self,
             connection: aiosqlite.Connection,
-            settings: ResponseRepositorySettings,
-            valid_items: dict,
-            invalid_items: dict
+            settings: ResponseRepositorySettings[V],
+            valid_items: dict[Iterable[Any], V],
+            invalid_items: dict[Iterable[Any], V],
     ) -> SQLiteTable:
         expire = timedelta(days=2)
 
@@ -114,14 +119,14 @@ class TestSQLiteTable(SQLiteTester, ResponseRepositoryTester):
                 f"VALUES ({",".join("?" * len(columns))});",
             ))
             parameters = [
-                (*key, datetime.now().isoformat(), repository.expire.isoformat(), repository.serialize(value))
+                (*key, datetime.now().isoformat(), repository.expire.isoformat(), await repository.serialize(value))
                 for key, value in valid_items.items()
             ]
             invalid_expire_dt = datetime.now() - expire  # expiry time in the past, response cache has expired
-            parameters.extend(
-                (*key, datetime.now().isoformat(), invalid_expire_dt.isoformat(), repository.serialize(value))
+            parameters += [
+                (*key, datetime.now().isoformat(), invalid_expire_dt.isoformat(), await repository.serialize(value))
                 for key, value in invalid_items.items()
-            )
+            ]
 
             await connection.executemany(query, parameters)
             await repository.commit()
@@ -164,50 +169,29 @@ class TestSQLiteTable(SQLiteTester, ResponseRepositoryTester):
         with pytest.raises(ValueError):
             assert await repository.count()
 
-    def test_serialize(self, repository: SQLiteTable):
-        _, value = self.generate_item(repository.settings)
-        value_serialized = repository.serialize(value)
-
-        assert isinstance(value_serialized, str)
-        assert repository.serialize(value_serialized) == value_serialized
-
-        assert repository.serialize("I am not a valid JSON") is None
-
-    # noinspection PyTypeChecker
-    def test_deserialize(self, repository: SQLiteTable):
-        _, value = self.generate_item(repository.settings)
-        value_str = json.dumps(value)
-        value_deserialized = repository.deserialize(value_str)
-
-        assert isinstance(value_deserialized, dict)
-        assert repository.deserialize(value_deserialized) == value
-
-        assert repository.deserialize(None) is None
-        assert repository.deserialize(123) is None
-
 
 class TestSQLiteCache(SQLiteTester, ResponseCacheTester):
 
     @staticmethod
-    def generate_response(settings: ResponseRepositorySettings, session: ClientSession = None) -> ClientResponse:
-        key, value = TestSQLiteTable.generate_item(settings)
-        return TestSQLiteTable.generate_response_from_item(settings, key, value, session=session)
+    async def generate_response(settings: ResponseRepositorySettings, session: ClientSession = None) -> ClientResponse:
+        key, value = await TestSQLiteTable.generate_item(settings)
+        return await TestSQLiteTable.generate_response_from_item(settings, key, value, session=session)
 
     @classmethod
     @contextlib.asynccontextmanager
-    async def generate_cache(cls) -> SQLiteCache:
+    async def generate_cache(cls, payload_handler: PayloadHandler) -> SQLiteCache:
         async with SQLiteCache(
                 cache_name="test",
                 connector=cls.generate_connection,
                 repository_getter=cls.get_repository_from_url,
         ) as cache:
             for _ in range(randrange(5, 10)):
-                settings = cls.generate_settings()
-                items = dict(TestSQLiteTable.generate_item(settings) for _ in range(randrange(3, 6)))
+                settings = cls.generate_settings(payload_handler=payload_handler)
+                items = dict([await TestSQLiteTable.generate_item(settings) for _ in range(randrange(3, 6))])
 
                 repository = await SQLiteTable(settings=settings, connection=cache.connection)
                 for k, v in items.items():
-                    await repository._set_item_from_key_value_pair(k, v)
+                    await repository._set_item_from_key_value_pair(k, await repository.serialize(v))
                 cache[settings.name] = repository
 
             await cache.commit()

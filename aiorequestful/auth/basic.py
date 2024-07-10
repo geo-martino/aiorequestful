@@ -41,3 +41,8 @@ class BasicAuthoriser(Authoriser):
         return {
             "Authorization": f"Basic {credentials_encoded}"
         }
+
+
+BASIC_CLASSES: frozenset[type[Authoriser]] = frozenset({
+    BasicAuthoriser,
+})

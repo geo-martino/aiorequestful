@@ -20,5 +20,9 @@ class ResponseError(HTTPError):
         super().__init__(formatted)
 
 
+class PayloadHandlerError(AIORequestfulError):
+    """Error raised when handling a response's payload."""
+
+
 class StatusHandlerError(AIORequestfulError):
     """Error raised when handling a response based on its status code."""

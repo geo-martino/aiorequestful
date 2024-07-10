@@ -106,7 +106,7 @@ class CachedSession(ClientSession):
 
         if not isinstance(payload, str | bytes):
             repository = self.cache.get_repository_from_url(request.url)
-            payload = repository.serialize(payload)
+            payload = await repository.serialize(payload)
 
         return CachedResponse(request=request, payload=payload)
 

@@ -8,16 +8,19 @@ Useful to handle backoff for requests on sensitive HTTP services
 which often return a '429 - Too Many Requests' status.
 """
 import asyncio
+import functools
 import itertools
 from abc import ABC, ABCMeta, abstractmethod
 from asyncio import sleep
 from collections.abc import Awaitable, Generator
 from copy import deepcopy
+from typing import SupportsInt, SupportsFloat
 
 from aiorequestful.types import Number
 
 
-class Timer(ABC):
+@functools.total_ordering
+class Timer(SupportsInt, SupportsFloat, ABC):
     """
     Base interface for all timers.
 
@@ -25,11 +28,6 @@ class Timer(ABC):
     """
 
     __slots__ = ("_initial", "_value", "_counter")
-
-    @property
-    def value(self) -> Number:
-        """The current timer value in seconds."""
-        return self._value
 
     @property
     def initial(self) -> Number:
@@ -83,27 +81,28 @@ class Timer(ABC):
         self._value = initial
         self._counter = 0
 
-    def reset(self) -> None:
-        """Reset the timer to its initial settings."""
-        self._value = self._initial
-        self._counter = 0
+    def __int__(self):
+        return int(self._value)
 
-    @abstractmethod
-    def increase(self) -> bool:
-        """
-        Increase the timer value.
+    def __float__(self):
+        return float(self._value)
 
-        :return: True if timer was increased, False if not.
-        """
-        raise NotImplementedError
+    def __eq__(self, other: Number):
+        return self._value == other
+
+    def __lt__(self, other: Number):
+        return self._value < other
+
+    def __round__(self, n: int = None) -> float:
+        return round(float(self._value), n)
 
     def __await__(self) -> Awaitable:
         """Asynchronously sleep for the current time set for this timer."""
-        return asyncio.sleep(self.value)
+        return asyncio.sleep(self._value)
 
-    def wait(self) -> None:
+    def __call__(self) -> None:
         """Sleep for the current time set for this timer."""
-        sleep(self.value)
+        return self.wait()
 
     def __deepcopy__(self, memo: dict):
         cls = self.__class__
@@ -116,6 +115,24 @@ class Timer(ABC):
 
         obj.reset()
         return obj
+
+    @abstractmethod
+    def increase(self) -> bool:
+        """
+        Increase the timer value.
+
+        :return: True if timer was increased, False if not.
+        """
+        raise NotImplementedError
+
+    def reset(self) -> None:
+        """Reset the timer to its initial settings."""
+        self._value = self._initial
+        self._counter = 0
+
+    def wait(self) -> None:
+        """Sleep for the current time set for this timer."""
+        sleep(self._value)
 
 
 ###########################################################################
@@ -171,7 +188,7 @@ class StepCountTimer(CountTimer):
     def total_remaining(self):
         if self.count is None:
             return
-        return sum(self.value + self.step * i for i in range(self.count_remaining + 1)) - self.value
+        return sum(float(self) + self.step * i for i in range(self.count_remaining + 1)) - float(self)
 
     @property
     def step(self) -> Number:
@@ -221,8 +238,8 @@ class GeometricCountTimer(CountTimer):
         if self.count is None:
             return
         return sum(
-            itertools.accumulate(range(self.count_remaining), lambda s, _: s * self.factor, initial=self.value)
-        ) - self.value
+            itertools.accumulate(range(self.count_remaining), lambda s, _: s * self.factor, initial=float(self))
+        ) - float(self)
 
     @property
     def factor(self) -> Number:
@@ -272,8 +289,8 @@ class PowerCountTimer(CountTimer):
         if self.count is None:
             return
         return sum(
-            itertools.accumulate(range(self.count_remaining), lambda s, _: s ** self.exponent, initial=self.value)
-        ) - self.value
+            itertools.accumulate(range(self.count_remaining), lambda s, _: s ** self.exponent, initial=float(self))
+        ) - float(self)
 
     @property
     def exponent(self) -> Number:
@@ -320,7 +337,7 @@ class CeilingTimer(Timer, metaclass=ABCMeta):
     def total_remaining(self):
         if self.final is None:
             return
-        return sum(self._all_values_iter(self.value)) - self.value
+        return sum(self._all_values_iter(float(self))) - float(self)
 
     @property
     def count(self):
@@ -330,7 +347,7 @@ class CeilingTimer(Timer, metaclass=ABCMeta):
 
     @property
     def can_increase(self) -> bool:
-        return self.final is None or isinstance(self.final, Number) and self._value < self.final
+        return self.final is None or isinstance(self.final, Number) and self < self.final
 
     def __init__(self, initial: Number = 1, final: Number = None):
         super().__init__(initial=initial)
