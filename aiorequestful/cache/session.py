@@ -3,14 +3,15 @@ import logging
 from http.client import InvalidURL
 from typing import Self, Any
 
-from aiohttp import ClientSession, ClientRequest, payload
+from aiohttp import ClientSession, ClientRequest
+from aiohttp.payload import JsonPayload
 
 from aiorequestful._utils import format_url_log
 from aiorequestful.cache.backend.base import ResponseCache, ResponseRepository
 from aiorequestful.cache.response import CachedResponse
 from aiorequestful.types import URLInput
 
-ClientSession.__init_subclass__ = lambda *_, **__: _  # WORKAROUND: disables inheritance warning
+ClientSession.__init_subclass__ = lambda *_, **__: _  # WORKAROUND: forces disabling of inheritance warning
 
 
 class CachedSession(ClientSession):
@@ -59,7 +60,7 @@ class CachedSession(ClientSession):
 
         kwargs["headers"] = kwargs.get("headers", {}) | dict(self.headers)
         if json is not None:
-            kwargs["data"] = payload.JsonPayload(json, dumps=self._json_serialize)
+            kwargs["data"] = JsonPayload(json, dumps=self._json_serialize)
 
         drop_kwargs = ("allow_redirects",)
 
@@ -90,15 +91,15 @@ class CachedSession(ClientSession):
         if repository is None:
             return
 
-        data = await repository.get_response(request)
-        if data is None:
+        payload = await repository.get_response(request)
+        if payload is None:
             return
 
-        if not isinstance(data, str | bytes):
+        if not isinstance(payload, str | bytes):
             repository = self.cache.get_repository_from_url(request.url)
-            data = repository.serialize(data)
+            payload = repository.serialize(payload)
 
-        return CachedResponse(request=request, data=data)
+        return CachedResponse(request=request, payload=payload)
 
     def _log_cache_hit(self, request: ClientRequest, response: CachedResponse | None) -> None:
         message = "CACHE HIT" if isinstance(response, CachedResponse) else "HTTP REQUEST"

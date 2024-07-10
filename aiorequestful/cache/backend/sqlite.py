@@ -15,7 +15,7 @@ from aiorequestful import PROGRAM_NAME
 from aiorequestful._utils import required_modules_installed
 from aiorequestful.cache.backend.base import DEFAULT_EXPIRE, ResponseCache, ResponseRepository, RepositoryRequestType
 from aiorequestful.cache.backend.base import RequestSettings
-from aiorequestful.exception import CacheError
+from aiorequestful.cache.exception import CacheError
 from aiorequestful.types import URLInput
 
 try:
@@ -30,7 +30,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
 
     #: The column under which a response's name is stored in the table
     name_column = "name"
-    #: The column under which response data is stored in the table
+    #: The column under which the response payload is stored in the table
     data_column = "response"
     #: The column under which the response cache time is stored in the table
     cached_column = "cached_at"

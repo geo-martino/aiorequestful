@@ -1,38 +1,57 @@
 """
 All operations relating to handling of requests to an API.
 """
-import asyncio
+from __future__ import annotations
 import contextlib
 import inspect
 import json
 import logging
-from collections.abc import Mapping, Callable
-from datetime import datetime, timedelta
-from http import HTTPStatus
+from collections.abc import Mapping, Callable, Sequence
+from copy import deepcopy
+from http import HTTPMethod
 from typing import Any, Self, Unpack
 from urllib.parse import unquote
 
 import aiohttp
+from aiohttp import ClientResponse
 from yarl import URL
 
 from aiorequestful._utils import format_url_log
 from aiorequestful.auth import Authoriser
 from aiorequestful.cache.backend import ResponseCache
 from aiorequestful.cache.session import CachedSession
-from aiorequestful.exception import RequestError, ResponseError
+from aiorequestful.request.exception import RequestError
+from aiorequestful.response.payload import StringPayloadHandler
+from aiorequestful.response.status import StatusHandler, ClientErrorStatusHandler, UnauthorisedStatusHandler, \
+    RateLimitStatusHandler
+from aiorequestful.request.timer import Timer
+from aiorequestful.types import JSON, URLInput, Headers, MethodInput, RequestKwargs
 
-from aiorequestful.types import JSON, URLInput, Headers, MethodInput, Method, RequestKwargs
+_DEFAULT_RESPONSE_HANDLERS = [
+    UnauthorisedStatusHandler(), RateLimitStatusHandler(), ClientErrorStatusHandler()
+]
 
 
-class RequestHandler:
+class RequestHandler[A: Authoriser, RT: Any]:
     """
     Generic API request handler using cached responses for GET requests only.
     Caches GET responses for a maximum of 4 weeks by default.
-    Handles error responses and backoff on failed requests.
+    Handles error responses and retries on failed requests.
     See :py:class:`APIAuthoriser` for more info on which params to pass to authorise requests.
 
     :param connector: When called, returns a new session to use when making requests.
     :param authoriser: The authoriser to use when authorising requests to the API.
+    :param payload_handler: Handles payload data conversion to return response payload in expected format.
+    :param response_handlers: Handlers to handle responses for specific status codes.
+        Should many of the given handlers be responsible for handling the same status code,
+        the first handler in the sequence will be used.
+    :param wait_timer: The time to wait after every request, regardless of whether it was successful.
+        It is best practice to configure this such that a maximum time can be achieved
+        within a reasonable time to ensure times between requests do not get too large.
+        Useful to help manage calls to services that have strict restraints around rate limiting.
+    :param retry_timer: The timer that controls how long to wait in between each successive failed request.
+        It is best practice to configure this such that a maximum time can be achieved
+        within a reasonable time to cause a timeout and raise an exception.
     """
 
     __slots__ = (
@@ -40,28 +59,12 @@ class RequestHandler:
         "_connector",
         "_session",
         "authoriser",
-        "backoff_start",
-        "backoff_factor",
-        "backoff_count",
-        "_backoff_start_logged",
-        "wait_time",
-        "wait_increment",
-        "wait_max",
-        "_wait_start_logged",
+        "payload_handler",
+        "_response_handlers",
+        "wait_timer",
+        "_retry_timer",
+        "_retry_logged",
     )
-
-    @property
-    def backoff_final(self) -> float:
-        """
-        The maximum wait time to retry a request in seconds
-        until giving up when applying backoff to failed requests
-        """
-        return self.backoff_start * self.backoff_factor ** self.backoff_count
-
-    @property
-    def timeout(self) -> int:
-        """The cumulative sum of all backoff intervals up to the final backoff time"""
-        return int(sum(self.backoff_start * self.backoff_factor ** i for i in range(self.backoff_count + 1)))
 
     @property
     def closed(self):
@@ -74,8 +77,39 @@ class RequestHandler:
         if not self.closed:
             return self._session
 
+    @property
+    def response_handlers(self) -> dict[int, StatusHandler]:
+        """Handles a response according to its status, payload, headers, etc."""
+        return self._response_handlers
+
+    @response_handlers.setter
+    def response_handlers(self, value: Sequence[StatusHandler]):
+        self._response_handlers.update({
+            status: handler for handler in reversed(value) for status in handler.status_codes
+        })
+
+    @property
+    def retry_timer(self) -> Timer | None:
+        """
+        The timer that controls how long to wait in between each successive failed request.
+        Always returns a reset timer with initial settings.
+        """
+        if not self._retry_timer:
+            return
+        return deepcopy(self._retry_timer)
+
+    @retry_timer.setter
+    def retry_timer(self, value: Timer | None):
+        self._retry_timer = value
+
     @classmethod
-    def create(cls, authoriser: Authoriser | None = None, cache: ResponseCache | None = None, **session_kwargs):
+    def create(
+            cls,
+            authoriser: A | None = None,
+            cache: ResponseCache | None = None,
+            payload_handler: Callable[[ClientResponse], RT] = None,
+            **session_kwargs
+    ) -> RequestHandler[A, RT]:
         """Create a new :py:class:`RequestHandler` with an appropriate session ``connector`` given the input kwargs"""
         def connector() -> aiohttp.ClientSession:
             """Create an appropriate session ``connector`` given the input kwargs"""
@@ -83,9 +117,17 @@ class RequestHandler:
                 return CachedSession(cache=cache, **session_kwargs)
             return aiohttp.ClientSession(**session_kwargs)
 
-        return cls(connector=connector, authoriser=authoriser)
+        return cls(connector=connector, authoriser=authoriser, payload_handler=payload_handler)
 
-    def __init__(self, connector: Callable[[], aiohttp.ClientSession], authoriser: Authoriser | None = None):
+    def __init__(
+            self,
+            connector: Callable[[], aiohttp.ClientSession],
+            authoriser: A | None = None,
+            payload_handler: Callable[[ClientResponse], RT] = None,
+            response_handlers: Sequence[StatusHandler] = (),
+            wait_timer: Timer = None,
+            retry_timer: Timer = None,
+    ):
         #: The :py:class:`logging.Logger` for this  object
         self.logger: logging.Logger = logging.getLogger(__name__)
 
@@ -95,23 +137,23 @@ class RequestHandler:
         #: The :py:class:`Authoriser` object
         self.authoriser = authoriser
 
-        #: The initial backoff time in seconds for failed requests
-        self.backoff_start = 0.2
-        #: The factor by which to increase backoff time for failed requests i.e. backoff_start ** backoff_factor
-        self.backoff_factor = 1.932
-        #: The maximum number of request attempts to make before giving up and raising an exception
-        self.backoff_count = 10
-        self._backoff_start_logged = False
+        if payload_handler is None:
+            payload_handler = StringPayloadHandler()
+        #: Handles payload data conversion to return response payload in expected format
+        self.payload_handler = payload_handler
 
-        #: The initial time in seconds to wait after receiving a response from a request
-        self.wait_time = 0
-        #: The amount in seconds to increase the wait time by each time a rate limit is hit i.e. 429 response
-        self.wait_increment = 0.1
-        #: The maximum time in seconds that the wait time can be incremented to
-        self.wait_max = 1
-        self._wait_start_logged = False
+        self._response_handlers = {}
+        self.response_handlers = response_handlers if response_handlers is not None else _DEFAULT_RESPONSE_HANDLERS
+
+        #: The time to wait after every request, regardless of whether it was successful
+        self.wait_timer = wait_timer
+        self._retry_timer = retry_timer
+
+        self._retry_logged = False
 
     async def __aenter__(self) -> Self:
+        self._retry_logged = False
+
         if self.closed:
             self._session = self._connector()
 
@@ -123,6 +165,8 @@ class RequestHandler:
     async def __aexit__(self, __exc_type, __exc_value, __traceback) -> None:
         await self.session.__aexit__(__exc_type, __exc_value, __traceback)
         self._session = None
+
+        self._retry_logged = False
 
     async def authorise(self) -> Headers:
         """
@@ -144,7 +188,27 @@ class RequestHandler:
         """Close the current session. No more requests will be possible once this has been called."""
         await self.session.close()
 
-    async def request(self, method: MethodInput, url: URLInput, **kwargs: Unpack[RequestKwargs]) -> JSON:
+    def log(
+            self, method: str, url: URLInput, message: str | list = None, level: int = logging.DEBUG, **kwargs
+    ) -> None:
+        """Format and log a request or request adjacent message to the given ``level``."""
+        log: list[Any] = []
+
+        url = URL(url)
+        if url.query:
+            log.extend(f"{k}: {unquote(v):<4}" for k, v in sorted(url.query.items()))
+        if kwargs.get("params"):
+            log.extend(f"{k}: {v:<4}" for k, v in sorted(kwargs.pop("params").items()))
+        if kwargs.get("json"):
+            log.extend(f"{k}: {str(v):<4}" for k, v in sorted(kwargs.pop("json").items()))
+        if len(kwargs) > 0:
+            log.extend(f"{k.title()}: {str(v):<4}" for k, v in kwargs.items() if v)
+        if message:
+            log.append(message) if isinstance(message, str) else log.extend(message)
+
+        self.logger.log(level=level, msg=format_url_log(method=method, url=url, messages=log))
+
+    async def request(self, method: MethodInput, url: URLInput, **kwargs: Unpack[RequestKwargs]) -> RT:
         """
         Generic method for handling API requests with back-off on failed requests.
         See :py:func:`request` for more arguments.
@@ -155,42 +219,31 @@ class RequestHandler:
         :return: The JSON formatted response or, if JSON formatting not possible, the text response.
         :raise APIError: On any logic breaking error/response.
         """
-        method = Method.get(method)
-        backoff = self.backoff_start
+        method = HTTPMethod(method.upper())
+        retry_timer = self.retry_timer
 
         while True:
             async with self._request(method=method, url=url, **kwargs) as response:
                 if response is None:
                     raise RequestError("No response received")
 
-                handled = await self._handle_bad_response(response=response)
-                waited = await self._wait_for_rate_limit_timeout(response=response)
-
-                if handled or waited:
+                if await self._handle_response(response, retry_timer=retry_timer):
                     continue
 
                 if response.ok:
-                    data = await self._get_json_response(response)
+                    payload = await self.payload_handler(response)
                     break
 
                 await self._log_response(response=response, method=method, url=url)
+                await self._handle_retry_timer(method=method, url=url, timer=retry_timer)
 
-                if backoff > self.backoff_final or backoff == 0:
-                    raise RequestError("Max retries exceeded")
-
-                # exponential backoff
-                self._log_backoff_start()
-                self.log(method=method.name, url=url, message=f"Request failed: retrying in {backoff} seconds...")
-                await asyncio.sleep(backoff)
-                backoff *= self.backoff_factor
-
-        self._backoff_start_logged = False
-        return data
+        self._retry_logged = False
+        return payload
 
     @contextlib.asynccontextmanager
     async def _request(
             self,
-            method: Method,
+            method: HTTPMethod,
             url: URLInput,
             log_message: str | list[str] = None,
             **kwargs
@@ -213,7 +266,8 @@ class RequestHandler:
         try:
             async with self.session.request(method=method.name, url=url, **kwargs) as response:
                 yield response
-                await asyncio.sleep(self.wait_time)
+                if self.wait_timer is not None:
+                    await self.wait_timer
         except aiohttp.ClientError as ex:
             self.logger.debug(str(ex))
             yield
@@ -226,37 +280,7 @@ class RequestHandler:
             if key not in signature:
                 kwargs.pop(key)
 
-    def log(
-            self, method: str, url: URLInput, message: str | list = None, level: int = logging.DEBUG, **kwargs
-    ) -> None:
-        """Format and log a request or request adjacent message to the given ``level``."""
-        log: list[Any] = []
-
-        url = URL(url)
-        if url.query:
-            log.extend(f"{k}: {unquote(v):<4}" for k, v in sorted(url.query.items()))
-        if kwargs.get("params"):
-            log.extend(f"{k}: {v:<4}" for k, v in sorted(kwargs.pop("params").items()))
-        if kwargs.get("json"):
-            log.extend(f"{k}: {str(v):<4}" for k, v in sorted(kwargs.pop("json").items()))
-        if len(kwargs) > 0:
-            log.extend(f"{k.title()}: {str(v):<4}" for k, v in kwargs.items() if v)
-        if message:
-            log.append(message) if isinstance(message, str) else log.extend(message)
-
-        self.logger.log(level=level, msg=format_url_log(method=method, url=url, messages=log))
-
-    def _log_backoff_start(self) -> None:
-        if self._backoff_start_logged:
-            return
-
-        self.logger.warning(
-            "\33[93mRequest failed: retrying using backoff strategy. "
-            f"Will retry request {self.backoff_count} more times and timeout in {self.timeout} seconds...\33[0m"
-        )
-        self._backoff_start_logged = True
-
-    async def _log_response(self, response: aiohttp.ClientResponse, method: Method, url: URLInput) -> None:
+    async def _log_response(self, response: aiohttp.ClientResponse, method: HTTPMethod, url: URLInput) -> None:
         """Log the method, URL, response text, and response headers."""
         response_headers = response.headers
         if isinstance(response.headers, Mapping):  # format headers if JSON
@@ -273,70 +297,37 @@ class RequestHandler:
             ]
         )
 
-    # TODO: Separate responsibility of handling specific status codes to implementations of a generic abstraction,
-    #  and have this handling dependency injected for this handler.
-    #  This doesn't follow SOLID very well;
-    #  would need to modify function directly to implement handling of new status codes.
-    async def _handle_bad_response(self, response: aiohttp.ClientResponse) -> bool:
-        """Handle bad responses by extracting message and handling status codes that should raise an exception."""
-        response_json = await self._get_json_response(response)
-        error_message = response_json.get("error", {}).get("message")
-        if error_message is None:
-            status = HTTPStatus(response.status)
-            error_message = f"{status.phrase} | {status.description}"
-
-        handled = False
-
-        def _log_bad_response(message: str) -> None:
-            self.logger.debug(f"Status code: {response.status} | {error_message} | {message}")
-
-        if response.status == 401:
-            _log_bad_response("Re-authorising...")
-            await self.authorise()
-            handled = True
-        elif response.status == 429:
-            if self.wait_time < self.wait_max:
-                self.wait_time += self.wait_increment
-                _log_bad_response(f"Rate limit hit. Increasing wait time between requests to {self.wait_time}s")
-                handled = True
-            else:
-                _log_bad_response(f"Rate limit hit and wait time already at maximum of {self.wait_time}s")
-        elif 400 <= response.status < 408:
-            raise ResponseError(error_message, response=response)
-
-        return handled
-
-    async def _wait_for_rate_limit_timeout(self, response: aiohttp.ClientResponse) -> bool:
-        """Handle rate limits when a 'retry-after' time is included in the response headers."""
-        if "retry-after" not in response.headers:
+    async def _handle_response(self, response: ClientResponse, retry_timer: Timer | None = None) -> bool:
+        if response.status not in self.response_handlers:
             return False
 
-        wait_time = int(response.headers["retry-after"])
-        wait_str = (datetime.now() + timedelta(seconds=wait_time)).strftime("%Y-%m-%d %H:%M:%S")
+        return await self.response_handlers[response.status](
+            response=response,
+            authoriser=self.authoriser,
+            session=self.session,
+            payload_handler=self.payload_handler,
+            wait_timer=self.wait_timer,
+            retry_timer=retry_timer,
+        )
 
-        if wait_time > self.timeout:  # exception if too long
-            raise RequestError(
-                f"Rate limit exceeded and wait time is greater than timeout of {self.timeout} seconds. "
-                f"Retry again at {wait_str}"
+    async def _handle_retry_timer(self, method: HTTPMethod, url: URLInput, timer: Timer | None) -> None:
+        if timer is None or not timer.can_increase or timer.value == 0:
+            raise RequestError("Max retries exceeded")
+
+        if not self._retry_logged:
+            self.logger.warning(
+                f"\33[93mRequest failed. Will retry request {timer.count_remaining} more times "
+                f"and timeout in {timer.total_remaining} seconds...\33[0m"
             )
+            self._retry_logged = True
 
-        if not self._wait_start_logged:
-            self.logger.warning(f"\33[93mRate limit exceeded. Retrying again at {wait_str}\33[0m")
-            self._wait_start_logged = True
-
-        await asyncio.sleep(wait_time)
-        self._wait_start_logged = False
-
-        return True
-
-    @staticmethod
-    async def _get_json_response(response: aiohttp.ClientResponse) -> JSON:
-        """Format the response to JSON and handle any errors"""
-        try:
-            data = await response.json()
-            return data if isinstance(data, dict) else {}
-        except (aiohttp.ContentTypeError, json.decoder.JSONDecodeError):
-            return {}
+        self.log(
+            method=method.name,
+            url=url,
+            message=f"Request failed: retrying in {timer.value} seconds..."
+        )
+        await timer
+        timer.increase()
 
     async def get(self, url: URLInput, **kwargs) -> JSON:
         """Sends a GET request."""

@@ -1,12 +1,19 @@
 import logging.config
 import os
 import shutil
+from asyncio import StreamReader
+from http import HTTPMethod
 from pathlib import Path
 
 import pytest
 import yaml
 from _pytest.fixtures import SubRequest
+from aiohttp import ClientRequest, ClientResponse
+# noinspection PyProtectedMember
+from aiohttp.helpers import TimerNoop
 from aioresponses import aioresponses
+from multidict import CIMultiDictProxy
+from yarl import URL
 
 from aiorequestful import MODULE_ROOT
 from tests.utils import path_resources
@@ -58,3 +65,41 @@ def requests_mock():
     """Yields an initialised :py:class:`aioresponses` object for mocking aiohttp requests as a pytest.fixture."""
     with aioresponses() as m:
         yield m
+
+
+@pytest.fixture
+def dummy_request() -> ClientRequest:
+    return ClientRequest(
+        method=HTTPMethod.GET.name,
+        url=URL.build(scheme="https", host="localhost", path="/test"),
+    )
+
+
+@pytest.fixture
+def dummy_response(dummy_request: ClientRequest) -> ClientResponse:
+    # noinspection PyTypeChecker,PyProtectedMember
+    resp = ClientResponse(
+        method=dummy_request.method,
+        url=dummy_request.url,
+        writer=None,
+        continue100=None,
+        timer=TimerNoop(),
+        request_info=dummy_request.request_info,
+        traces=[],
+        loop=dummy_request.loop,
+        session=dummy_request._session,
+    )
+
+    # response status
+    resp.version = dummy_request.version
+    resp.status = 200
+    resp.reason = "test"
+
+    # headers
+    resp._headers = CIMultiDictProxy(dummy_request.headers)
+    resp._raw_headers = ()
+
+    # noinspection PyProtectedMember
+    resp.content = StreamReader(loop=resp._loop)
+
+    return resp

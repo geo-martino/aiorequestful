@@ -10,7 +10,7 @@ from aiohttp import RequestInfo, ClientRequest, ClientResponse
 from dateutil.relativedelta import relativedelta
 
 from aiorequestful._utils import get_iterator
-from aiorequestful.exception import CacheError
+from aiorequestful.cache.exception import CacheError
 from aiorequestful.types import UnitCollection, JSON, URLInput
 
 type CacheRequestType = RequestInfo | ClientRequest | ClientResponse
@@ -96,7 +96,7 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
 
     @abstractmethod
     async def commit(self) -> None:
-        """Commit the changes to the data"""
+        """Commit the changes to the repository"""
         raise NotImplementedError
 
     @abstractmethod
@@ -276,7 +276,7 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
 
     @abstractmethod
     async def commit(self) -> None:
-        """Commit the changes to the data"""
+        """Commit the changes to the cache"""
         raise NotImplementedError
 
     @abstractmethod

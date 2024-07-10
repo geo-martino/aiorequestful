@@ -4,14 +4,16 @@ import socket
 from contextlib import contextmanager, asynccontextmanager
 from copy import deepcopy
 from datetime import datetime
+from http import HTTPMethod
 from pathlib import Path
-from typing import MutableMapping, Any, Literal, Generator, Coroutine, Callable, Awaitable, Unpack
+from typing import Any, Literal, Unpack
+from collections.abc import MutableMapping, Generator, Coroutine, Callable, Awaitable
 
 from aiohttp import ClientSession, ClientResponse
 from yarl import URL
 
-from aiorequestful.exception import AuthoriserError
-from aiorequestful.types import MethodInput, URLInput, Method, Headers, ImmutableHeaders, MutableJSON, ImmutableJSON, \
+from aiorequestful.auth.exception import AuthoriserError
+from aiorequestful.types import MethodInput, URLInput, Headers, ImmutableHeaders, MutableJSON, ImmutableJSON, \
     JSON, RequestKwargs
 
 
@@ -26,7 +28,7 @@ class AuthRequest:
     """
 
     def __init__(self, method: MethodInput, url: URLInput, **kwargs: Unpack[RequestKwargs]):
-        self.method = Method.get(method)
+        self.method = HTTPMethod(method.upper())
         self.url = URL(url)
 
         for k, v in kwargs.items():

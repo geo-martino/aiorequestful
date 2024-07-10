@@ -83,7 +83,7 @@ class SQLiteTester(BaseResponseTester):
                 params=params,
                 headers={"Content-Type": "application/json"},
             )
-        return CachedResponse(request=request, data=json.dumps(value))
+        return CachedResponse(request=request, payload=json.dumps(value))
 
 
 class TestSQLiteTable(SQLiteTester, ResponseRepositoryTester):

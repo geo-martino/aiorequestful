@@ -9,7 +9,7 @@ from multidict import CIMultiDictProxy
 class CachedResponse(ClientResponse):
     """Emulates :py:class:`ClientResponse` for a response found in a cache backed."""
 
-    def __init__(self, request: ClientRequest, data: str | bytes):
+    def __init__(self, request: ClientRequest, payload: str | bytes):
         # noinspection PyTypeChecker,PyProtectedMember
         super().__init__(
             method=request.method,
@@ -34,7 +34,7 @@ class CachedResponse(ClientResponse):
 
         self.content = StreamReader(loop=self._loop)
 
-        if isinstance(data, str):
-            data = data.encode()
-        self.content.feed_data(data)
+        if isinstance(payload, str):
+            payload = payload.encode()
+        self.content.feed_data(payload)
         self.content.feed_eof()

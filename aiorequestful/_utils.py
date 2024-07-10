@@ -3,7 +3,7 @@ from typing import Any
 
 from yarl import URL
 
-from aiorequestful.exception import AIORequestsImportError
+from aiorequestful.exception import AIORequestfulImportError
 from aiorequestful.types import UnitIterable
 
 
@@ -41,6 +41,6 @@ def required_modules_installed(modules: list, this: object = None) -> bool:
         else:
             message = f"Cannot create {this.__class__.__name__} object. Required modules: {", ".join(names)}"
 
-        raise AIORequestsImportError(message)
+        raise AIORequestfulImportError(message)
 
     return modules_installed
