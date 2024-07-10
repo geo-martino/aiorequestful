@@ -86,15 +86,34 @@ class TestRequestHandler:
         handler = RequestHandler.create(authoriser=authoriser, cache=cache)
         assert handler.closed
 
-    async def test_context_management(self, request_handler: RequestHandler):
+    async def test_context_management(self, request_handler: RequestHandler, cache: ResponseCache):
         with pytest.raises(RequestError):
             await request_handler.authorise()
+
+        request_handler.payload_handler = JSONPayloadHandler()
+
+        async with cache:  # add some repositories to check whether payload handler is set on them
+            await cache.create_repository(MockResponseRepositorySettings(name="test1"))
+            await cache.create_repository(MockResponseRepositorySettings(name="test2"))
+
+        assert cache.values()
+        for repository in cache.values():
+            assert isinstance(repository.settings.payload_handler, StringPayloadHandler)
 
         async with request_handler as handler:
             assert isinstance(handler.session, CachedSession)
 
             for k, v in (await handler.authoriser.authorise()).items():
                 assert handler.session.headers.get(k) == v
+
+            for repository in cache.values():
+                assert not isinstance(repository.settings.payload_handler, StringPayloadHandler)
+                assert repository.settings.payload_handler == handler.payload_handler
+
+            # set back via property assignment
+            request_handler.payload_handler = StringPayloadHandler()
+            for repository in cache.values():
+                assert isinstance(repository.settings.payload_handler, StringPayloadHandler)
 
     async def test_uses_unique_retry_timer(
             self, request_handler: RequestHandler, url: URL, mocker: MockerFixture, requests_mock: aioresponses
