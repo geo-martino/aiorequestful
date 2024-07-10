@@ -11,7 +11,7 @@ class MockResponseRepositorySettings(ResponseRepositorySettings):
     def fields(self) -> tuple[str, ...]:
         return "id",
 
-    def get_key(self, url: str | URL, *_, **__) -> tuple[str | None, ...]:
+    def get_key(self, url: str | URL, **__) -> tuple[str | None, ...]:
         if str(url).endswith(".com"):
             return (None,)
         return URL(url).path.split("/")[-1] or None,
@@ -27,7 +27,7 @@ class MockPaginatedRequestSettings(MockResponseRepositorySettings):
     def fields(self) -> tuple[str, ...]:
         return *super().fields, "offset", "size"
 
-    def get_key(self, url: str | URL, *_, **__) -> tuple[str | int | None, ...]:
+    def get_key(self, url: str | URL, **__) -> tuple[str | int | None, ...]:
         base = super().get_key(url=url)
         return *base, self.get_offset(url), self.get_limit(url)
 

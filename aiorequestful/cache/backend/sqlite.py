@@ -1,3 +1,6 @@
+"""
+Implements a cache backend for an SQLite database.
+"""
 from __future__ import annotations
 
 import json
@@ -117,7 +120,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
         if not isinstance(request, RequestInfo):
             return request  # `request` is the key
 
-        key = self.settings.get_key(request.url)
+        key = self.settings.get_key(method=request.method, url=request.url, headers=request.headers)
         if any(part is None for part in key):
             return
 
@@ -233,7 +236,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
 
         return json.dumps(value, indent=2)
 
-    def deserialize(self, value: V | dict) -> Any:
+    def deserialize(self, value: V | dict) -> dict | None:
         if isinstance(value, dict):
             return value
 
@@ -316,6 +319,7 @@ class SQLiteCache(ResponseCache[SQLiteTable]):
         super().__init__(cache_name=cache_name, repository_getter=repository_getter, expire=expire)
 
         self._connector = connector
+        #: The current connection to the SQLite database.
         self.connection: aiosqlite.Connection | None = None
 
     async def _connect(self) -> Self:

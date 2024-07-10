@@ -143,11 +143,11 @@ class TestPowerCountTimer(CountTimerTester):
 
     @pytest.fixture
     def timer_initial(self) -> PowerCountTimer:
-        return PowerCountTimer(initial=1.1, count=5, factor=2)
+        return PowerCountTimer(initial=1.1, count=5, exponent=2)
 
     @staticmethod
     def test_properties():
-        timer = PowerCountTimer(initial=2, count=3, factor=2)
+        timer = PowerCountTimer(initial=2, count=3, exponent=2)
         assert timer.final == 256
         assert timer.total == sum([2, 4, 16, 256])
 
@@ -222,11 +222,11 @@ class TestPowerCeilingTimer(CeilingTimerTester):
 
     @pytest.fixture
     def timer_initial(self) -> PowerCeilingTimer:
-        return PowerCeilingTimer(initial=1.1, final=5, factor=1.3)
+        return PowerCeilingTimer(initial=1.1, final=5, exponent=1.3)
 
     @staticmethod
     def test_properties():
-        timer = PowerCeilingTimer(initial=2, final=50, factor=2)
+        timer = PowerCeilingTimer(initial=2, final=50, exponent=2)
         assert timer.count == 3
         assert timer.total == sum([2, 4, 16, 50])
 

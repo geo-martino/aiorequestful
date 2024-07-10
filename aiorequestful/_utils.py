@@ -1,3 +1,6 @@
+"""
+Generic utility functions and classes which can be used throughout the entire package.
+"""
 from collections.abc import Iterator, Iterable
 from typing import Any
 

@@ -1,3 +1,12 @@
+"""
+Implementations to handle timers on the :py:class:`.RequestHandler`.
+
+Includes various time incremental operations to manage increasing of time between requests
+with various mathematical formulae.
+
+Useful to handle backoff for requests on sensitive HTTP services
+which often return a '429 - Too Many Requests' status.
+"""
 import asyncio
 import itertools
 from abc import ABC, ABCMeta, abstractmethod
@@ -9,6 +18,11 @@ from aiorequestful.types import Number
 
 
 class Timer(ABC):
+    """
+    Base interface for all timers.
+
+    :param initial: The starting value to use.
+    """
 
     __slots__ = ("_initial", "_value", "_counter")
 
@@ -108,6 +122,12 @@ class Timer(ABC):
 ## Count timers
 ###########################################################################
 class CountTimer(Timer, metaclass=ABCMeta):
+    """
+    Abstract implementation of a :py:class:`Timer` which will increment a maximum number of times.
+
+    :param initial: The starting value to use.
+    :param count: The amount of times to increase the value.
+    """
 
     __slots__ = ("_count",)
 
@@ -125,6 +145,13 @@ class CountTimer(Timer, metaclass=ABCMeta):
 
 
 class StepCountTimer(CountTimer):
+    """
+    Increases time value by a given ``step`` amount a distinct number of times.
+
+    :param initial: The starting value to use.
+    :param count: The amount of times to increase the value.
+    :param step: The amount to increase the value by for each value increase.
+    """
 
     __slots__ = ("_step",)
 
@@ -151,7 +178,7 @@ class StepCountTimer(CountTimer):
         """The amount to increase the timer value by in seconds."""
         return self._step
 
-    def __init__(self, initial: Number = 1, count: int = None, step: Number = 2):
+    def __init__(self, initial: Number = 0, count: int = None, step: Number = 1):
         super().__init__(initial=initial, count=count)
         self._step = step
 
@@ -165,6 +192,13 @@ class StepCountTimer(CountTimer):
 
 
 class GeometricCountTimer(CountTimer):
+    """
+    Increases time value by multiplying the current value by a given ``factor`` a distinct number of times.
+
+    :param initial: The starting value to use.
+    :param count: The amount of times to increase the value.
+    :param factor: The amount to multiply the current value by for each value increase.
+    """
 
     __slots__ = ("_factor",)
 
@@ -209,21 +243,28 @@ class GeometricCountTimer(CountTimer):
 
 
 class PowerCountTimer(CountTimer):
+    """
+    Increases time value by raising the current value to a given power a distinct number of times.
 
-    __slots__ = ("_factor",)
+    :param initial: The starting value to use.
+    :param count: The amount of times to increase the value.
+    :param exponent: The power to raise the value by for each value increase.
+    """
+
+    __slots__ = ("_exponent",)
 
     @property
     def final(self):
         if self.count is None:
             return
-        return self.initial ** self.factor ** self.count
+        return self.initial ** self.exponent ** self.count
 
     @property
     def total(self):
         if self.count is None:
             return
         return sum(
-            itertools.accumulate(range(1, self.count + 1), lambda s, _: s ** self.factor, initial=self.initial)
+            itertools.accumulate(range(1, self.count + 1), lambda s, _: s ** self.exponent, initial=self.initial)
         )
 
     @property
@@ -231,23 +272,23 @@ class PowerCountTimer(CountTimer):
         if self.count is None:
             return
         return sum(
-            itertools.accumulate(range(self.count_remaining), lambda s, _: s ** self.factor, initial=self.value)
+            itertools.accumulate(range(self.count_remaining), lambda s, _: s ** self.exponent, initial=self.value)
         ) - self.value
 
     @property
-    def factor(self) -> Number:
+    def exponent(self) -> Number:
         """The power value to apply to the timer value in seconds."""
-        return self._factor
+        return self._exponent
 
-    def __init__(self, initial: Number = 1, count: int = None, factor: Number = 2):
+    def __init__(self, initial: Number = 1, count: int = None, exponent: Number = 2):
         super().__init__(initial=initial, count=count)
-        self._factor = factor
+        self._exponent = exponent
 
     def increase(self) -> bool:
         if not self.can_increase:
             return False
 
-        self._value **= self.factor
+        self._value **= self.exponent
         self._counter += 1
         return True
 
@@ -256,6 +297,12 @@ class PowerCountTimer(CountTimer):
 ## Ceiling timers
 ###########################################################################
 class CeilingTimer(Timer, metaclass=ABCMeta):
+    """
+    Abstract implementation of a :py:class:`Timer` which will increment until a maximum value is reached.
+
+    :param initial: The starting value to use.
+    :param final: The value at which to stop increasing.
+    """
 
     __slots__ = ("_final",)
 
@@ -299,6 +346,13 @@ class CeilingTimer(Timer, metaclass=ABCMeta):
 
 
 class StepCeilingTimer(CeilingTimer):
+    """
+    Increases time value by a given ``step`` amount until a maximum value is reached.
+
+    :param initial: The starting value to use.
+    :param final: The value at which to stop increasing.
+    :param step: The amount to increase the value by for each value increase.
+    """
 
     __slots__ = ("_step",)
 
@@ -335,6 +389,13 @@ class StepCeilingTimer(CeilingTimer):
 
 
 class GeometricCeilingTimer(CeilingTimer):
+    """
+    Increases time value by multiplying the current value by a given ``factor`` until a maximum value is reached.
+
+    :param initial: The starting value to use.
+    :param final: The value at which to stop increasing.
+    :param factor: The amount to multiply the current value by for each value increase.
+    """
 
     __slots__ = ("_factor",)
 
@@ -371,17 +432,24 @@ class GeometricCeilingTimer(CeilingTimer):
 
 
 class PowerCeilingTimer(CeilingTimer):
+    """
+    Increases time value by raising the current value to a given power until a maximum value is reached.
 
-    __slots__ = ("_factor",)
+    :param initial: The starting value to use.
+    :param final: The value at which to stop increasing.
+    :param exponent: The power to raise the value by for each value increase.
+    """
+
+    __slots__ = ("_exponent",)
 
     @property
-    def factor(self) -> Number:
+    def exponent(self) -> Number:
         """The power value to apply to the timer value in seconds."""
-        return self._factor
+        return self._exponent
 
-    def __init__(self, initial: Number = 1, final: Number = None, factor: Number = 2):
+    def __init__(self, initial: Number = 1, final: Number = None, exponent: Number = 2):
         super().__init__(initial=initial, final=final)
-        self._factor = factor
+        self._exponent = exponent
 
     def _all_values_iter(self, value: Number) -> Generator[Number, None, None]:
         if self.final is None:
@@ -390,7 +458,7 @@ class PowerCeilingTimer(CeilingTimer):
         yield value
 
         while value < self.final:
-            value = min(self.final, value ** self.factor)
+            value = min(self.final, value ** self.exponent)
             yield value
 
     def increase(self) -> bool:
@@ -398,9 +466,9 @@ class PowerCeilingTimer(CeilingTimer):
             return False
 
         if self.final is not None:
-            self._value = min(self.final, self._value ** self.factor)
+            self._value = min(self.final, self._value ** self.exponent)
         else:
-            self._value **= self.factor
+            self._value **= self.exponent
 
         self._counter += 1
         return True

@@ -1,3 +1,10 @@
+"""
+Implementations which handle various status codes.
+
+Some operations include:
+ * Re-authorising when a 'Not Authorised' status is returned.
+ * Waiting until rate limit time has expired when a 'Too Many Requests' status is returned.
+"""
 import asyncio
 import logging
 from abc import ABC, abstractmethod
@@ -24,7 +31,7 @@ class StatusHandler(ABC):
     @property
     @abstractmethod
     def status_codes(self) -> list[int]:
-        """The response statuses this handler can handle."""
+        """The response status codes this handler can handle."""
         raise NotImplementedError
 
     def __init__(self):

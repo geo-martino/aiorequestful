@@ -1,6 +1,4 @@
-"""
-All base classes relating to generic API operations including authorisation and request handling.
-"""
+"""Welcome to aiorequestful"""
 from pathlib import Path
 
 PROGRAM_NAME = "aiorequestful"

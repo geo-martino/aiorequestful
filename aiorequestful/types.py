@@ -24,20 +24,27 @@ type UnitList[T] = T | list[T]
 
 Number = int | float
 
-type ImmutableHeaders = Mapping[str, str]
-type MutableHeaders = MutableMapping[str, str]
-type Headers = dict[str, str]
+ImmutableHeaders = Mapping[str, str]
+MutableHeaders = MutableMapping[str, str]
+Headers = dict[str, str]
 
-type JSON_VALUE = str | int | float | list | dict | bool | None
-type ImmutableJSON = Mapping[str, JSON_VALUE]
-type MutableJSON = MutableMapping[str, JSON_VALUE]
-type JSON = dict[str, JSON_VALUE]
+JSON_VALUE = str | int | float | list | dict | bool | None
+ImmutableJSON = Mapping[str, JSON_VALUE]
+MutableJSON = MutableMapping[str, JSON_VALUE]
+JSON = dict[str, JSON_VALUE]
 
-type URLInput = str | URL
-type MethodInput = str | HTTPMethod
+URLInput = str | URL
+MethodInput = str | HTTPMethod
 
 
 class RequestKwargs(TypedDict):
+    """
+    TypedDict for kwargs relating to an HTTP request.
+
+    Arguments passed through to `.aiohttp.ClientSession.request`.
+    See aiohttp reference for more info on available kwargs:
+    https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request
+    """
     method: MethodInput
     url: URLInput
     params: NotRequired[Mapping[str, str]]

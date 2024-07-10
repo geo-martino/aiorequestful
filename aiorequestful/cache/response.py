@@ -1,3 +1,6 @@
+"""
+Implements a ClientResponse to mock HTTP responses from cached data.
+"""
 from asyncio import StreamReader
 
 from aiohttp import ClientRequest, ClientResponse

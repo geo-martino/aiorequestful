@@ -13,8 +13,8 @@ from aiohttp import ClientSession, ClientResponse
 from aioresponses import aioresponses, CallbackResult
 from yarl import URL
 
-from aiorequestful.auth import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
 from aiorequestful.auth.exception import AuthoriserError
+from aiorequestful.auth.utils import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
 from aiorequestful.types import JSON, ImmutableHeaders
 from tests.auth.utils import response_enrich_keys
 from tests.utils import path_token

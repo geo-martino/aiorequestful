@@ -1,3 +1,6 @@
+"""
+Exceptions relating to request operations.
+"""
 from aiorequestful.exception import HTTPError
 
 

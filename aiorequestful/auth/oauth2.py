@@ -1,3 +1,8 @@
+"""
+Implements OAuth2 authoriser flows.
+
+See specification for more info: https://auth0.com/docs/authenticate/protocols/oauth
+"""
 import base64
 import hashlib
 import logging
@@ -13,14 +18,15 @@ from webbrowser import open as webopen
 from aiohttp import ClientSession
 from yarl import URL
 
-from aiorequestful.auth._base import Authoriser, _DEFAULT_SERVICE_NAME
-from aiorequestful.auth._utils import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
+from aiorequestful.auth.base import Authoriser, _DEFAULT_SERVICE_NAME
+from aiorequestful.auth.utils import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
 from aiorequestful.auth.exception import AuthoriserError
 from aiorequestful.types import ImmutableJSON, JSON, URLInput, UnitIterable, Headers
 from aiorequestful._utils import get_iterator
 
 
 class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
+    """Abstract implementation of an :py:class:`.Authoriser` for OAuth2 authorisation flows."""
 
     __slots__ = ("token_request", "response_handler", "response_tester")
 
@@ -48,13 +54,6 @@ class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
             "Authorization": f"Basic {credentials_encoded}",
         }
 
-    def get_response(self) -> JSON | None:
-        """Return the loaded the authorisation response if found, or load it from file if available."""
-        response = self.response_handler.response
-        if not response:
-            response = self.response_handler.load_response_from_file()
-        return response
-
     async def _request_token(self, session: ClientSession, request: AuthRequest, params: dict[str, Any] = None) -> JSON:
         with request.enrich_parameters("params", params if params else {}):
             async with request(session=session) as r:
@@ -69,6 +68,11 @@ class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
 
 
 class ClientCredentialsFlow(OAuth2Authoriser):
+    """
+    Authorises using OAuth2 specification following the 'Client Credentials' flow specification.
+
+    See more: https://auth0.com/docs/get-started/authentication-and-authorization-flow/client-credentials-flow
+    """
 
     __slots__ = ()
 
@@ -142,7 +146,7 @@ class ClientCredentialsFlow(OAuth2Authoriser):
         return obj
 
     async def authorise(self):
-        response = self.get_response()
+        response = self.response_handler.get_response()
         loaded = response is not None and response.items()
 
         valid = await self.response_tester(response=response)
@@ -336,7 +340,7 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
         self.socket_handler = socket_handler
 
     async def authorise(self):
-        response = self.get_response()
+        response = self.response_handler.get_response()
         loaded = response is not None and response.items()
 
         if not loaded:

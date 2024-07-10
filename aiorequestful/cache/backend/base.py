@@ -1,17 +1,20 @@
+"""
+Base interface for implementations of all cache backends.
+"""
 import asyncio
 import logging
 from abc import ABCMeta, abstractmethod
 from collections.abc import MutableMapping, Callable, Collection, AsyncIterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Self
+from typing import Any, Self, Unpack
 
 from aiohttp import RequestInfo, ClientRequest, ClientResponse
 from dateutil.relativedelta import relativedelta
 
 from aiorequestful._utils import get_iterator
 from aiorequestful.cache.exception import CacheError
-from aiorequestful.types import UnitCollection, JSON, URLInput
+from aiorequestful.types import UnitCollection, JSON, URLInput, RequestKwargs
 
 type CacheRequestType = RequestInfo | ClientRequest | ClientResponse
 type RepositoryRequestType[K] = K | CacheRequestType
@@ -35,8 +38,14 @@ class ResponseRepositorySettings(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def get_key(self, *args, **kwargs) -> tuple:
-        """Extracts the name to assign to a cache entry in the repository from a given ``value``."""
+    def get_key(self, **kwargs: Unpack[RequestKwargs]) -> tuple:
+        """
+        Extracts the name to assign to a cache entry in the repository from the given request kwargs.
+
+        Arguments passed through to `.aiohttp.ClientSession.request`.
+        See aiohttp reference for more info on available kwargs:
+        https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request
+        """
         raise NotImplementedError
 
     @staticmethod
@@ -84,7 +93,10 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         #: The :py:class:`logging.Logger` for this  object
         self.logger: logging.Logger = logging.getLogger(__name__)
 
+        #: The settings to use to identify and interact with the repository in the backend.
         self.settings = settings
+        #: The current connection to the backend.
+        self.connection = None
         self._expire = expire
 
     @abstractmethod
@@ -146,13 +158,18 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
 
     @abstractmethod
     async def get_response(self, request: RepositoryRequestType[K]) -> V | None:
-        """Get the response relating to the given ``request`` from this repository if it exists."""
+        """
+        Get the response relating to the given ``request`` from this repository if it exists.
+
+        :return: The result if found.
+        """
         raise NotImplementedError
 
     async def get_responses(self, requests: Collection[RepositoryRequestType[K]]) -> list[V]:
         """
         Get the responses relating to the given ``requests`` from this repository if they exist.
-        Returns results unordered.
+
+        :return: Results unordered.
         """
         tasks = asyncio.gather(*map(self.get_response, requests))
         return list(filter(lambda result: result is not None, await tasks))
@@ -189,14 +206,16 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
     async def delete_response(self, request: RepositoryRequestType[K]) -> bool:
         """
         Delete the given ``request`` from this repository if it exists.
-        Returns True if deleted in the repository and False if ``request`` was not found in the repository.
+
+        :return: True if deleted in the repository and False if ``request`` was not found in the repository.
         """
         raise NotImplementedError
 
     async def delete_responses(self, requests: Collection[RepositoryRequestType[K]]) -> int:
         """
         Delete the given ``requests`` from this repository if they exist.
-        Returns the number of the given ``requests`` deleted in the repository.
+
+        :return: The number of the given ``requests`` deleted in the repository.
         """
         tasks = asyncio.gather(*map(self.delete_response, requests))
         return sum(await tasks)
@@ -236,8 +255,11 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
     ):
         super().__init__()
 
+        #: The name to give to this cache.
         self.cache_name = cache_name
+        #: A function that can be used to identify the repository in this cache that matches a given URL.
         self.repository_getter = repository_getter
+        #: The expiry time to apply to cached responses after which responses are invalidated.
         self.expire = expire
 
         self._repositories: dict[str, ST] = {}
@@ -309,7 +331,11 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
         return next(iter(results), None)
 
     async def get_response(self, request: CacheRequestType) -> Any:
-        """Get the response relating to the given ``request`` from the appropriate repository if it exists."""
+        """
+        Get the response relating to the given ``request`` from the appropriate repository if it exists.
+
+        :return: The result if found.
+        """
         repository = self.get_repository_from_requests([request])
         if repository is not None:
             return await repository.get_response(request)
@@ -317,7 +343,8 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
     async def get_responses(self, requests: Collection[CacheRequestType]) -> list:
         """
         Get the responses relating to the given ``requests`` from the appropriate repository if they exist.
-        Returns results unordered.
+
+        :return: Results unordered.
         """
         repository = self.get_repository_from_requests(requests)
         if repository is not None:
@@ -341,7 +368,8 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
     async def delete_response(self, request: CacheRequestType) -> bool:
         """
         Delete the given ``request`` from the appropriate repository if it exists.
-        Returns True if deleted in the repository and False if ``request`` was not found in the repository.
+
+        :return: True if deleted in the repository and False if ``request`` was not found in the repository.
         """
         repository = self.get_repository_from_requests([request])
         if repository is not None:
@@ -350,7 +378,8 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
     async def delete_responses(self, requests: Collection[CacheRequestType]) -> int:
         """
         Delete the given ``requests`` from the appropriate repository.
-        Returns the number of the given ``requests`` deleted in the repository.
+
+        :return: The number of the given ``requests`` deleted in the repository.
         """
         repository = self.get_repository_from_requests(requests)
         if repository is not None:

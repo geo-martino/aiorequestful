@@ -1,3 +1,6 @@
+"""
+Exceptions relating to response operations.
+"""
 from aiohttp import ClientResponse
 
 from aiorequestful.exception import AIORequestfulError, HTTPError

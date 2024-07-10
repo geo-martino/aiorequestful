@@ -1,5 +1,5 @@
 =========================
-Welcome to AIORequestful!
+Welcome to aiorequestful!
 =========================
 
 An Asynchronous RESTful API requests framework for asyncio and Python

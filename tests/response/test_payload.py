@@ -31,7 +31,7 @@ class PayloadHandlerTester(ABC):
 
     @staticmethod
     async def test_serialise(handler: PayloadHandler, response: ClientResponse, payload: Any):
-        assert await handler.serialise(response) == payload
+        assert await handler.deserialize(response) == payload
 
 
 class TestJSONPayloadHandler(PayloadHandlerTester):

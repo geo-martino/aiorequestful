@@ -31,6 +31,24 @@ Release History
 The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
+
+0.4.0
+=====
+
+Changed
+-------
+* RequestSettings renamed to :py:class:`.ResponseRepositorySettings`
+* :py:meth:`.ResponseRepositorySettings.get_key` now accepts all request kwargs as given by :py:class:`.RequestKwargs`.
+  In addition, :py:class:`.ResponseRepository` now passes ``method``, ``url``, and ``headers``
+  to :py:meth:`.ResponseRepositorySettings.get_key`
+* ``factor`` renamed to ``exponent`` on power :py:class:`.Timer` implementations
+* Renamed serialise method to :py:meth:`.PayloadHandler.deserialize` on :py:class:`.PayloadHandler`
+
+Documentation
+-------------
+* Expanded docstrings everywhere
+
+
 0.3.1
 =====
 
@@ -42,6 +60,7 @@ Changed
 -------
 * Expand schema data type sizes on :py:class:`.SQLiteTable` repository
 * Rename repository RequestSettings to :py:class:`.ResponseRepositorySettings`
+
 
 0.3.0
 =====
@@ -58,6 +77,7 @@ Removed
 -------
 * MethodInput enum in favour of http.HTTPMethod
 
+
 0.2.1
 =====
 
@@ -65,6 +85,7 @@ Fixed
 -----
 * Client ID not being passed to :py:meth:`.ClientCredentialsFlow.create` and :py:meth:`.AuthorisationCodeFlow.create`
   from relevant create_with_encoded_credentials methods. Now passed correctly.
+
 
 0.2.0
 =====
@@ -75,7 +96,6 @@ Added
 * OAuth2 Authorization Code with PKCE flow implementation
 * Basic user/password authorisation implementation
 * :py:class:`.RequestKwargs` TypedDict
-
 
 Changed
 -------
@@ -93,8 +113,5 @@ Changed
 
 0.1.0
 =====
-
-Added
------
 
 Initial release! 🎉

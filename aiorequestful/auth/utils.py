@@ -1,3 +1,6 @@
+"""
+Authoriser specific utilities which can be used to build implementations of authoriser flows.
+"""
 import json
 import logging
 import socket
@@ -25,6 +28,9 @@ class AuthRequest:
     :param method: HTTP request method (such as GET, POST, PUT, etc.).
     :param url: The URL of the request.
     :param **kwargs: Any other kwargs required for a successful request.
+        Arguments passed through to `.aiohttp.ClientSession.request`.
+        See aiohttp reference for more info on available kwargs:
+        https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request
     """
 
     __slots__ = tuple(list(RequestKwargs.__annotations__))
@@ -57,7 +63,8 @@ class AuthRequest:
             self, key: Literal["data", "params", "json"], value: dict[str, Any]
     ) -> Generator[None, None, None]:
         """
-        Temporarily append data to the parameters of a request and remove when done.
+        Temporarily append data to the parameters of a request within a context,
+        removing them when no longer in context.
 
         :param key: The keyword of the argument to append data to.
         :param value: The value to append.
@@ -146,12 +153,18 @@ class AuthResponseHandler:
         #: The :py:class:`logging.Logger` for this  object
         self.logger: logging.Logger = logging.getLogger(__name__)
 
+        #: Stores the currently valid response
         self.response: MutableJSON | None = None
 
+        #: Path to use for loading and saving a token.
         self.file_path: Path | None = Path(file_path).with_suffix(".json") if file_path else None
+        #: Prefix to add to the header value for authorised calls to an endpoint.
         self.token_key: str = "access_token"
+        #: The default prefix to append to the credentials in the 'Authorization' header value
+        #: if one cannot be found in the response.
         self.token_prefix_default: str | None = token_prefix_default
 
+        #: Extra headers to add to the final headers to ensure future successful requests.
         self.additional_headers = additional_headers
 
     def sanitise_response(self, response: ImmutableJSON = None) -> JSON:
@@ -220,6 +233,13 @@ class AuthResponseHandler:
         with open(self.file_path, "w") as file:
             json.dump(self.response, file, indent=2)
 
+    def get_response(self) -> JSON | None:
+        """Return the loaded the authorisation response if found, or load it from file if available."""
+        response = self.response
+        if not response:
+            response = self.load_response_from_file()
+        return response
+
 
 class AuthResponseTester:
     """
@@ -250,7 +270,9 @@ class AuthResponseTester:
         #: The :py:class:`logging.Logger` for this  object
         self.logger: logging.Logger = logging.getLogger(__name__)
 
+        #: The request to execute when testing the access token.
         self.request = request
+        #: Test to apply to the response from the access token request.
         self.response_test = response_test
         #: The max allowed time in seconds left until the token is due to expire
         self.max_expiry = max_expiry

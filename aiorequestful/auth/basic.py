@@ -1,6 +1,9 @@
+"""
+Implements basic authoriser flows.
+"""
 import base64
 
-from aiorequestful.auth._base import Authoriser, _DEFAULT_SERVICE_NAME
+from aiorequestful.auth.base import Authoriser, _DEFAULT_SERVICE_NAME
 from aiorequestful.types import Headers
 
 
@@ -25,8 +28,11 @@ class BasicAuthoriser(Authoriser):
     ):
         super().__init__(service_name=service_name)
 
+        #: The login ID of the credentials.
         self.login = login
+        #: The login password.
         self.password = password
+        #: The encoding to apply to credentials when sending requests.
         self.encoding = encoding
 
     async def authorise(self) -> Headers:

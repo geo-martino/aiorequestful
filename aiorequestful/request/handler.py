@@ -1,5 +1,5 @@
 """
-All operations relating to handling of requests to an API.
+All operations relating to handling of requests to an HTTP service.
 """
 from __future__ import annotations
 import contextlib
@@ -34,17 +34,15 @@ _DEFAULT_RESPONSE_HANDLERS = [
 
 class RequestHandler[A: Authoriser, RT: Any]:
     """
-    Generic API request handler using cached responses for GET requests only.
-    Caches GET responses for a maximum of 4 weeks by default.
-    Handles error responses and retries on failed requests.
-    See :py:class:`APIAuthoriser` for more info on which params to pass to authorise requests.
+    Generic HTTP request handler.
+    Handles error responses, retries on failed requests, authorisation, caching etc.
 
     :param connector: When called, returns a new session to use when making requests.
-    :param authoriser: The authoriser to use when authorising requests to the API.
+    :param authoriser: The authoriser to use when authorising requests to the HTTP service.
     :param payload_handler: Handles payload data conversion to return response payload in expected format.
     :param response_handlers: Handlers to handle responses for specific status codes.
         Should many of the given handlers be responsible for handling the same status code,
-        the first handler in the sequence will be used.
+        the first handler in the sequence will be used for that status code.
     :param wait_timer: The time to wait after every request, regardless of whether it was successful.
         It is best practice to configure this such that a maximum time can be achieved
         within a reasonable time to ensure times between requests do not get too large.
@@ -108,6 +106,9 @@ class RequestHandler[A: Authoriser, RT: Any]:
             authoriser: A | None = None,
             cache: ResponseCache | None = None,
             payload_handler: Callable[[ClientResponse], RT] = None,
+            response_handlers: Sequence[StatusHandler] = (),
+            wait_timer: Timer = None,
+            retry_timer: Timer = None,
             **session_kwargs
     ) -> RequestHandler[A, RT]:
         """Create a new :py:class:`RequestHandler` with an appropriate session ``connector`` given the input kwargs"""
@@ -117,7 +118,14 @@ class RequestHandler[A: Authoriser, RT: Any]:
                 return CachedSession(cache=cache, **session_kwargs)
             return aiohttp.ClientSession(**session_kwargs)
 
-        return cls(connector=connector, authoriser=authoriser, payload_handler=payload_handler)
+        return cls(
+            connector=connector,
+            authoriser=authoriser,
+            payload_handler=payload_handler,
+            response_handlers=response_handlers,
+            wait_timer=wait_timer,
+            retry_timer=retry_timer,
+        )
 
     def __init__(
             self,
@@ -170,13 +178,14 @@ class RequestHandler[A: Authoriser, RT: Any]:
 
     async def authorise(self) -> Headers:
         """
-        Method for API authorisation which tests/refreshes/reauthorises as needed.
+        Authenticate and authorise, testing/refreshing/re-authorising as needed.
+        Updates the session with new credentials.
 
         :return: Headers for request authorisation.
-        :raise APIError: If the token cannot be validated.
+        :raise AuthoriserError: If the token cannot be validated.
         """
         if self.closed:
-            raise RequestError("Session is closed. Enter the API context to start a new session.")
+            raise RequestError("Session is closed. Enter this object's context to start a new session.")
 
         headers = {}
         if self.authoriser is not None:
@@ -210,14 +219,15 @@ class RequestHandler[A: Authoriser, RT: Any]:
 
     async def request(self, method: MethodInput, url: URLInput, **kwargs: Unpack[RequestKwargs]) -> RT:
         """
-        Generic method for handling API requests with back-off on failed requests.
+        Generic method for handling HTTP requests handling errors, authorisation, backoff, caching etc. as configured.
         See :py:func:`request` for more arguments.
 
-        :param method: method for the request:
-            ``GET``, ``OPTIONS``, ``HEAD``, ``POST``, ``PUT``, ``PATCH``, or ``DELETE``.
-        :param url: URL to call.
+        :param method: HTTP request method (such as GET, POST, PUT, etc.)
+        :param url: The URL to perform the request on.
         :return: The JSON formatted response or, if JSON formatting not possible, the text response.
-        :raise APIError: On any logic breaking error/response.
+        :raise RequestError: For any request which fails.
+        :raise ResponseError: For any request which returns an invalid response.
+        :raise StatusHandlerError: For any request which returns a response with a status that could not be handled.
         """
         method = HTTPMethod(method.upper())
         retry_timer = self.retry_timer

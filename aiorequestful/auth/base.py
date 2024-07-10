@@ -1,3 +1,6 @@
+"""
+Base interface for implementations of all authoriser flows.
+"""
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
@@ -29,7 +32,8 @@ class Authoriser(ABC):
         """
         Authenticate and authorise, testing/refreshing/re-authorising as needed.
 
-        :raise APIError: If the token cannot be generated or validated.
+        :raise AuthoriserError: If the authorisation failed to generate valid a token if needed,
+            or if the tests continue to fail despite authorising/re-authorising.
         """
         raise NotImplementedError
 

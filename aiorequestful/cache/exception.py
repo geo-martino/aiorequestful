@@ -1,3 +1,6 @@
+"""
+Exceptions relating to cache operations.
+"""
 from aiorequestful.exception import AIORequestfulError
 
 

@@ -1,5 +1,5 @@
 """
-Exceptions relating to API operations.
+Core exceptions for the entire package.
 """
 
 
