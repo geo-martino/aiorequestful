@@ -21,7 +21,7 @@ from aiorequestful.request.timer import StepCountTimer, Timer
 from aiorequestful.response.exception import ResponseError
 from aiorequestful.response.payload import JSONPayloadHandler
 from aiorequestful.response.status import ClientErrorStatusHandler, RateLimitStatusHandler, UnauthorisedStatusHandler
-from tests.cache.backend.utils import MockRequestSettings
+from tests.cache.backend.utils import MockResponseRepositorySettings
 
 
 class TestRequestHandler:
@@ -147,7 +147,7 @@ class TestRequestHandler:
         requests_mock.get(url, payload=expected_json, repeat=True)
 
         async with request_handler as handler:
-            repository = await handler.session.cache.create_repository(MockRequestSettings(name="test"))
+            repository = await handler.session.cache.create_repository(MockResponseRepositorySettings(name="test"))
             handler.session.cache.repository_getter = lambda _, __: repository
 
             async with handler._request(method=HTTPMethod.GET, url=url, persist=False) as response:

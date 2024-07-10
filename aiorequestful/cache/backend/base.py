@@ -20,8 +20,8 @@ DEFAULT_EXPIRE: timedelta = timedelta(weeks=1)
 
 
 @dataclass
-class RequestSettings(metaclass=ABCMeta):
-    """Settings for a request type for a given endpoint to be used to configure a repository in the cache backend."""
+class ResponseRepositorySettings(metaclass=ABCMeta):
+    """Settings for a response type from a given endpoint to be used to configure a repository in the cache backend."""
     #: That name of the repository in the backend
     name: str
 
@@ -80,7 +80,7 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         """
         raise NotImplementedError
 
-    def __init__(self, settings: RequestSettings, expire: timedelta | relativedelta = DEFAULT_EXPIRE):
+    def __init__(self, settings: ResponseRepositorySettings, expire: timedelta | relativedelta = DEFAULT_EXPIRE):
         #: The :py:class:`logging.Logger` for this  object
         self.logger: logging.Logger = logging.getLogger(__name__)
 
@@ -285,7 +285,7 @@ class ResponseCache[ST: ResponseRepository](MutableMapping[str, ST], metaclass=A
         raise NotImplementedError
 
     @abstractmethod
-    def create_repository(self, settings: RequestSettings) -> ResponseRepository:
+    def create_repository(self, settings: ResponseRepositorySettings) -> ResponseRepository:
         """
         Create and return a :py:class:`SQLiteResponseStorage` and store this object in this cache.
 

@@ -31,6 +31,18 @@ Release History
 The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
+0.3.1
+=====
+
+Added
+-----
+* Implementation of __slots__ wherever it is appropriate
+
+Changed
+-----
+* Expand schema data type sizes on :py:class:`.SQLiteTable` repository
+* Rename repository RequestSettings to :py:class:`.ResponseRepositorySettings`
+
 0.3.0
 =====
 

@@ -9,7 +9,7 @@ from aiorequestful.cache.backend.base import ResponseCache
 from aiorequestful.cache.session import CachedSession
 from tests.cache.backend.test_sqlite import TestSQLiteCache as SQLiteCacheTester
 from tests.cache.backend.testers import ResponseCacheTester
-from tests.cache.backend.utils import MockRequestSettings
+from tests.cache.backend.utils import MockResponseRepositorySettings
 
 fake = Faker()
 
@@ -43,7 +43,7 @@ class TestCachedSession:
 
     async def test_context_management(self, cache: ResponseCache):
         # does not create repository backend resource until entered
-        settings = MockRequestSettings(name=fake.word())
+        settings = MockResponseRepositorySettings(name=fake.word())
         session = CachedSession(cache=cache)
         repository = cache.create_repository(settings)
 

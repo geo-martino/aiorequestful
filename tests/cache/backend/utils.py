@@ -2,10 +2,10 @@ from typing import Any
 
 from yarl import URL
 
-from aiorequestful.cache.backend.base import RequestSettings
+from aiorequestful.cache.backend.base import ResponseRepositorySettings
 
 
-class MockRequestSettings(RequestSettings):
+class MockResponseRepositorySettings(ResponseRepositorySettings):
 
     @property
     def fields(self) -> tuple[str, ...]:
@@ -21,7 +21,7 @@ class MockRequestSettings(RequestSettings):
         return response.get("name")
 
 
-class MockPaginatedRequestSettings(MockRequestSettings):
+class MockPaginatedRequestSettings(MockResponseRepositorySettings):
 
     @property
     def fields(self) -> tuple[str, ...]:

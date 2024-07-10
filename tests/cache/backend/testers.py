@@ -7,14 +7,14 @@ import pytest
 from aiohttp import ClientResponse, ClientSession
 from faker import Faker
 
-from aiorequestful.cache.backend.base import ResponseRepository, ResponseCache, RequestSettings
+from aiorequestful.cache.backend.base import ResponseRepository, ResponseCache, ResponseRepositorySettings
 from aiorequestful.cache.exception import CacheError
-from tests.cache.backend.utils import MockRequestSettings, MockPaginatedRequestSettings
+from tests.cache.backend.utils import MockResponseRepositorySettings, MockPaginatedRequestSettings
 
 fake = Faker()
 
 REQUEST_SETTINGS = [
-    MockRequestSettings,
+    MockResponseRepositorySettings,
     MockPaginatedRequestSettings,
 ]
 
@@ -35,7 +35,7 @@ class BaseResponseTester(metaclass=ABCMeta):
 
     @staticmethod
     @abstractmethod
-    def generate_item(settings: RequestSettings) -> tuple[Any, Any]:
+    def generate_item(settings: ResponseRepositorySettings) -> tuple[Any, Any]:
         """
         Randomly generates an item (key, value) appropriate for the given ``settings``
         that can be persisted to the repository.
@@ -45,7 +45,7 @@ class BaseResponseTester(metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def generate_response_from_item(
-            cls, settings: RequestSettings, key: Any, value: Any, session: ClientSession = None
+            cls, settings: ResponseRepositorySettings, key: Any, value: Any, session: ClientSession = None
     ) -> ClientResponse:
         """
         Generates a :py:class:`ClientResponse` appropriate for the given ``settings``
@@ -56,7 +56,7 @@ class BaseResponseTester(metaclass=ABCMeta):
     @classmethod
     @abstractmethod
     def generate_bad_response_from_item(
-            cls, settings: RequestSettings, key: Any, value: Any, session: ClientSession = None
+            cls, settings: ResponseRepositorySettings, key: Any, value: Any, session: ClientSession = None
     ) -> ClientResponse:
         """
         Generates a bad :py:class:`ClientResponse` appropriate for the given ``settings``
@@ -70,21 +70,21 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
 
     # noinspection PyArgumentList
     @pytest.fixture(scope="class", params=REQUEST_SETTINGS)
-    def settings(self, request) -> RequestSettings:
+    def settings(self, request) -> ResponseRepositorySettings:
         """
         Yields the :py:class:`RequestSettings` to use when creating a new :py:class:`ResponseRepository`
         as a pytest.fixture.
         """
-        cls: type[RequestSettings] = request.param
+        cls: type[ResponseRepositorySettings] = request.param
         return cls(name="test")
 
     @pytest.fixture(scope="class")
-    def valid_items(self, settings: RequestSettings) -> dict:
+    def valid_items(self, settings: ResponseRepositorySettings) -> dict:
         """Yields expected items to be found in the repository that have not expired as a pytest.fixture."""
         return dict(self.generate_item(settings) for _ in range(randrange(3, 6)))
 
     @pytest.fixture(scope="class")
-    def invalid_items(self, settings: RequestSettings) -> dict:
+    def invalid_items(self, settings: ResponseRepositorySettings) -> dict:
         """Yields expected items to be found in the repository that have passed the expiry time as a pytest.fixture."""
         return dict(self.generate_item(settings) for _ in range(randrange(3, 6)))
 
@@ -95,7 +95,7 @@ class ResponseRepositoryTester(BaseResponseTester, metaclass=ABCMeta):
 
     @abstractmethod
     async def repository(
-            self, connection: Any, settings: RequestSettings, valid_items: dict, invalid_items: dict
+            self, connection: Any, settings: ResponseRepositorySettings, valid_items: dict, invalid_items: dict
     ) -> ResponseRepository:
         """
         Yields a valid :py:class:`ResponseRepository` to use throughout tests in this suite as a pytest_asyncio.fixture.
@@ -312,14 +312,14 @@ class ResponseCacheTester(BaseResponseTester, metaclass=ABCMeta):
 
     # noinspection PyArgumentList
     @staticmethod
-    def generate_settings() -> RequestSettings:
+    def generate_settings() -> ResponseRepositorySettings:
         """Randomly generates a :py:class:`RequestSettings` object that can be used to create a repository."""
-        cls: type[RequestSettings] = choice(REQUEST_SETTINGS)
+        cls: type[ResponseRepositorySettings] = choice(REQUEST_SETTINGS)
         return cls(name="".join(fake.random_letters(20)))
 
     @staticmethod
     @abstractmethod
-    def generate_response(settings: RequestSettings, session: ClientSession = None) -> ClientResponse:
+    def generate_response(settings: ResponseRepositorySettings, session: ClientSession = None) -> ClientResponse:
         """
         Randomly generates a :py:class:`ClientResponse` appropriate for the given ``settings``
         that can be persisted to the repository.

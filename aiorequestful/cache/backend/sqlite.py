@@ -4,6 +4,7 @@ import json
 import os
 from collections.abc import Mapping, Callable, Generator
 from datetime import datetime, timedelta
+from http import HTTPMethod
 from pathlib import Path
 from tempfile import gettempdir
 from typing import Any, Self
@@ -14,7 +15,7 @@ from dateutil.relativedelta import relativedelta
 from aiorequestful import PROGRAM_NAME
 from aiorequestful._utils import required_modules_installed
 from aiorequestful.cache.backend.base import DEFAULT_EXPIRE, ResponseCache, ResponseRepository, RepositoryRequestType
-from aiorequestful.cache.backend.base import RequestSettings
+from aiorequestful.cache.backend.base import ResponseRepositorySettings
 from aiorequestful.cache.exception import CacheError
 from aiorequestful.types import URLInput
 
@@ -31,7 +32,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
     #: The column under which a response's name is stored in the table
     name_column = "name"
     #: The column under which the response payload is stored in the table
-    data_column = "response"
+    payload_column = "payload"
     #: The column under which the response cache time is stored in the table
     cached_column = "cached_at"
     #: The column under which the response expiry time is stored in the table
@@ -53,7 +54,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
             f'{ddl_sep}"{self.name_column}" TEXT',
             f'{ddl_sep}"{self.cached_column}" TIMESTAMP NOT NULL',
             f'{ddl_sep}"{self.expiry_column}" TIMESTAMP NOT NULL',
-            f'{ddl_sep}"{self.data_column}" TEXT',
+            f'{ddl_sep}"{self.payload_column}" TEXT',
             f'{ddl_sep}PRIMARY KEY ("{'", "'.join(self._primary_key_columns)}")',
             ');',
             f'CREATE INDEX IF NOT EXISTS idx_{self.expiry_column} '
@@ -69,7 +70,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
     def __init__(
             self,
             connection: aiosqlite.Connection,
-            settings: RequestSettings,
+            settings: ResponseRepositorySettings,
             expire: timedelta | relativedelta = DEFAULT_EXPIRE,
     ):
         required_modules_installed(self._required_modules, self)
@@ -100,13 +101,13 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
         """A map of column names to column data types for the primary keys of this repository."""
         expected_columns = self.settings.fields
 
-        keys = {"method": "VARCHAR(10)"}
+        keys = {"method": f"VARCHAR({max(len(method) for method in HTTPMethod)})"}
         if "id" in expected_columns:
-            keys["id"] = "VARCHAR(50)"
+            keys["id"] = "VARCHAR(255)"
         if "offset" in expected_columns:
-            keys["offset"] = "INT2"
+            keys["offset"] = "INT"
         if "size" in expected_columns:
-            keys["size"] = "INT2"
+            keys["size"] = "INT"
 
         return keys
 
@@ -161,7 +162,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
 
     async def __aiter__(self):
         query = "\n".join((
-            f'SELECT "{'", "'.join(self._primary_key_columns)}", "{self.data_column}" ',
+            f'SELECT "{'", "'.join(self._primary_key_columns)}", "{self.payload_column}" ',
             f'FROM "{self.settings.name}"',
             f'WHERE "{self.expiry_column}" > ?',
         ))
@@ -175,8 +176,8 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
             return
 
         query = "\n".join((
-            f'SELECT "{self.data_column}" FROM {self.settings.name}',
-            f'WHERE "{self.data_column}" IS NOT NULL',
+            f'SELECT "{self.payload_column}" FROM {self.settings.name}',
+            f'WHERE "{self.payload_column}" IS NOT NULL',
             f'\tAND "{self.expiry_column}" > ?',
             f'\tAND {'\n\tAND '.join(f'"{key}" = ?' for key in self._primary_key_columns)}',
         ))
@@ -194,7 +195,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
             self.name_column,
             self.cached_column,
             self.expiry_column,
-            self.data_column
+            self.payload_column
         )
         query = "\n".join((
             f'INSERT OR REPLACE INTO "{self.settings.name}" (',
@@ -359,7 +360,7 @@ class SQLiteCache(ResponseCache[SQLiteTable]):
         except ValueError:
             pass
 
-    def create_repository(self, settings: RequestSettings) -> SQLiteTable:
+    def create_repository(self, settings: ResponseRepositorySettings) -> SQLiteTable:
         if settings.name in self:
             raise CacheError(f"Repository already exists: {settings.name}")
 

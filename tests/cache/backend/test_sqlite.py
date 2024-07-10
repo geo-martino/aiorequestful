@@ -13,7 +13,7 @@ from aiohttp import ClientRequest, ClientResponse, ClientSession
 from faker import Faker
 from yarl import URL
 
-from aiorequestful.cache.backend.base import RequestSettings
+from aiorequestful.cache.backend.base import ResponseRepositorySettings
 from aiorequestful.cache.backend.sqlite import SQLiteTable, SQLiteCache
 from aiorequestful.cache.response import CachedResponse
 from tests.cache.backend.testers import ResponseRepositoryTester, ResponseCacheTester, BaseResponseTester
@@ -30,7 +30,7 @@ class SQLiteTester(BaseResponseTester):
         return aiosqlite.connect(":memory:")
 
     @staticmethod
-    def generate_item(settings: RequestSettings) -> tuple[tuple, dict[str, Any]]:
+    def generate_item(settings: ResponseRepositorySettings) -> tuple[tuple, dict[str, Any]]:
         key = ("GET", "".join(fake.random_letters(20)),)
 
         value = {
@@ -47,14 +47,14 @@ class SQLiteTester(BaseResponseTester):
 
     @classmethod
     def generate_response_from_item(
-            cls, settings: RequestSettings, key: Any, value: Any, session: ClientSession = None
+            cls, settings: ResponseRepositorySettings, key: Any, value: Any, session: ClientSession = None
     ) -> ClientResponse:
         url = f"http://test.com/{settings.name}/{key[1]}"
         return cls._generate_response_from_item(url=url, key=key, value=value, session=session)
 
     @classmethod
     def generate_bad_response_from_item(
-            cls, settings: RequestSettings, key: Any, value: Any, session: ClientSession = None
+            cls, settings: ResponseRepositorySettings, key: Any, value: Any, session: ClientSession = None
     ) -> ClientResponse:
         url = "http://test.com"
         return cls._generate_response_from_item(url=url, key=key, value=value, session=session)
@@ -90,7 +90,11 @@ class TestSQLiteTable(SQLiteTester, ResponseRepositoryTester):
 
     @pytest.fixture
     async def repository(
-            self, connection: aiosqlite.Connection, settings: RequestSettings, valid_items: dict, invalid_items: dict
+            self,
+            connection: aiosqlite.Connection,
+            settings: ResponseRepositorySettings,
+            valid_items: dict,
+            invalid_items: dict
     ) -> SQLiteTable:
         expire = timedelta(days=2)
 
@@ -101,7 +105,7 @@ class TestSQLiteTable(SQLiteTester, ResponseRepositoryTester):
                 *repository._primary_key_columns,
                 repository.cached_column,
                 repository.expiry_column,
-                repository.data_column
+                repository.payload_column
             )
             query = "\n".join((
                 f"INSERT OR REPLACE INTO {settings.name} (",
@@ -124,7 +128,7 @@ class TestSQLiteTable(SQLiteTester, ResponseRepositoryTester):
 
             yield repository
 
-    async def test_init_fails(self, connection: aiosqlite.Connection, settings: RequestSettings):
+    async def test_init_fails(self, connection: aiosqlite.Connection, settings: ResponseRepositorySettings):
         repository = SQLiteTable(connection, settings=settings)
         with pytest.raises(ValueError):
             assert await repository.count()
@@ -139,7 +143,7 @@ class TestSQLiteTable(SQLiteTester, ResponseRepositoryTester):
                 rows = await cur.fetchall()
         assert len(rows) == 0
 
-    async def test_init(self, connection: aiosqlite.Connection, settings: RequestSettings):
+    async def test_init(self, connection: aiosqlite.Connection, settings: ResponseRepositorySettings):
         async with connection:
             repository = await SQLiteTable(connection, settings=settings)
 
@@ -152,7 +156,7 @@ class TestSQLiteTable(SQLiteTester, ResponseRepositoryTester):
 
             async with connection.execute(f"SELECT name FROM pragma_table_info('{settings.name}');") as cur:
                 columns = {row[0] async for row in cur}
-            assert {repository.name_column, repository.data_column, repository.expiry_column}.issubset(columns)
+            assert {repository.name_column, repository.payload_column, repository.expiry_column}.issubset(columns)
             assert set(repository._primary_key_columns).issubset(columns)
 
             assert await repository.count() == 0
@@ -185,7 +189,7 @@ class TestSQLiteTable(SQLiteTester, ResponseRepositoryTester):
 class TestSQLiteCache(SQLiteTester, ResponseCacheTester):
 
     @staticmethod
-    def generate_response(settings: RequestSettings, session: ClientSession = None) -> ClientResponse:
+    def generate_response(settings: ResponseRepositorySettings, session: ClientSession = None) -> ClientResponse:
         key, value = TestSQLiteTable.generate_item(settings)
         return TestSQLiteTable.generate_response_from_item(settings, key, value, session=session)
 
