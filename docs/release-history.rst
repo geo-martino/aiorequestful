@@ -39,7 +39,7 @@ Added
 * Implementation of __slots__ wherever it is appropriate
 
 Changed
------
+-------
 * Expand schema data type sizes on :py:class:`.SQLiteTable` repository
 * Rename repository RequestSettings to :py:class:`.ResponseRepositorySettings`
 

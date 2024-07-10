@@ -1,6 +1,6 @@
 {%- set is_root = basename == project.lower() -%}
 {%- set module_footer = ["base", "exception"] -%}
-{%- set module_caps = ["api", "m3u", "xautopf", "flac", "mp3", "m4a", "wma"] -%}
+{%- set module_caps = [] -%}
 
 {%- macro formatname(name) -%}
     {%- if name.endswith(".exception") -%}

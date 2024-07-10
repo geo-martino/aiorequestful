@@ -170,7 +170,7 @@ class CeilingTimerTester(TimerTester, metaclass=ABCMeta):
         raise NotImplementedError
 
     @pytest.fixture
-    def timer_infinite(self, timer_initial: CountTimer) -> CountTimer:
+    def timer_infinite(self, timer_initial: CeilingTimer) -> CeilingTimer:
         timer_initial = deepcopy(timer_initial)
         timer_initial._final = None
         return timer_initial

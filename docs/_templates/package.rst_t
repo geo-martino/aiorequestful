@@ -1,12 +1,12 @@
-{%- set is_root = pkgname == "musify" -%}
+{%- set is_root = pkgname == "aiorequestful" -%}
 {%- set module_footer = ["base", "exception"] -%}
-{%- set module_caps = ["api", "m3u", "xautopf", "flac", "mp3", "m4a", "wma"] -%}
+{%- set module_caps = [] -%}
 
 {%- macro formatname(name) -%}
     {%- if name.endswith(".exception") -%}
         {%- set name = "exceptions"-%}
     {%- else -%}
-        {%- set name = name.replace("musify.", "").replace("_", " ").split(".") | last -%}
+        {%- set name = name.replace("aiorequestful.", "").replace("_", " ").split(".") | last -%}
     {%- endif -%}
 
     {%- if name | lower in module_caps -%}

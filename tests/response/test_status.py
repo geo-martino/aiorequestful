@@ -5,6 +5,7 @@ from random import choice
 
 import pytest
 from aiohttp import ClientResponse, ClientSession, ClientRequest
+# noinspection PyProtectedMember
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDictProxy, CIMultiDict
 
