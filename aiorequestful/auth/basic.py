@@ -14,6 +14,8 @@ class BasicAuthoriser(Authoriser):
     :param encoding: The encoding to apply to credentials when sending requests.
     """
 
+    __slots__ = ("login", "password", "encoding")
+
     def __init__(
             self,
             login: str,

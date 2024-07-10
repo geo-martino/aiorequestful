@@ -9,6 +9,9 @@ from aiorequestful.types import Number
 
 
 class Timer(ABC):
+
+    __slots__ = ("_initial", "_value", "_counter")
+
     @property
     def value(self) -> Number:
         """The current timer value in seconds."""
@@ -68,7 +71,7 @@ class Timer(ABC):
 
     def reset(self) -> None:
         """Reset the timer to its initial settings."""
-        self._value = self.initial
+        self._value = self._initial
         self._counter = 0
 
     @abstractmethod
@@ -93,8 +96,9 @@ class Timer(ABC):
         obj = cls.__new__(cls)
 
         memo[id(self)] = obj
-        for k, v in self.__dict__.items():
-            setattr(obj, k, deepcopy(v, memo))
+        slots = itertools.chain.from_iterable(getattr(c, '__slots__', []) for c in cls.__mro__)
+        for key in slots:
+            setattr(obj, key, deepcopy(getattr(self, key), memo))
 
         obj.reset()
         return obj
@@ -105,13 +109,7 @@ class Timer(ABC):
 ###########################################################################
 class CountTimer(Timer, metaclass=ABCMeta):
 
-    @property
-    def value(self):
-        return self._value
-
-    @property
-    def initial(self):
-        return self._initial
+    __slots__ = ("_count",)
 
     @property
     def count(self):
@@ -128,9 +126,7 @@ class CountTimer(Timer, metaclass=ABCMeta):
 
 class StepCountTimer(CountTimer):
 
-    @property
-    def value(self):
-        return self._value
+    __slots__ = ("_step",)
 
     @property
     def final(self):
@@ -170,9 +166,7 @@ class StepCountTimer(CountTimer):
 
 class GeometricCountTimer(CountTimer):
 
-    @property
-    def value(self):
-        return self._value
+    __slots__ = ("_factor",)
 
     @property
     def final(self):
@@ -216,9 +210,7 @@ class GeometricCountTimer(CountTimer):
 
 class PowerCountTimer(CountTimer):
 
-    @property
-    def value(self):
-        return self._value
+    __slots__ = ("_factor",)
 
     @property
     def final(self):
@@ -265,13 +257,7 @@ class PowerCountTimer(CountTimer):
 ###########################################################################
 class CeilingTimer(Timer, metaclass=ABCMeta):
 
-    @property
-    def value(self):
-        return self._value
-
-    @property
-    def initial(self):
-        return self._initial
+    __slots__ = ("_final",)
 
     @property
     def final(self):
@@ -314,6 +300,8 @@ class CeilingTimer(Timer, metaclass=ABCMeta):
 
 class StepCeilingTimer(CeilingTimer):
 
+    __slots__ = ("_step",)
+
     @property
     def step(self) -> Number:
         """The amount to increase the timer value by in seconds."""
@@ -348,6 +336,8 @@ class StepCeilingTimer(CeilingTimer):
 
 class GeometricCeilingTimer(CeilingTimer):
 
+    __slots__ = ("_factor",)
+
     @property
     def factor(self) -> Number:
         """The amount to multiply the timer value by in seconds."""
@@ -381,6 +371,8 @@ class GeometricCeilingTimer(CeilingTimer):
 
 
 class PowerCeilingTimer(CeilingTimer):
+
+    __slots__ = ("_factor",)
 
     @property
     def factor(self) -> Number:

@@ -27,6 +27,8 @@ class AuthRequest:
     :param **kwargs: Any other kwargs required for a successful request.
     """
 
+    __slots__ = tuple(list(RequestKwargs.__annotations__))
+
     def __init__(self, method: MethodInput, url: URLInput, **kwargs: Unpack[RequestKwargs]):
         self.method = HTTPMethod(method.upper())
         self.url = URL(url)
@@ -80,7 +82,10 @@ class AuthRequest:
     @asynccontextmanager
     async def request(self, session: ClientSession) -> Coroutine[ClientResponse, None, None]:
         """Send the request within the given ``session`` and return the response."""
-        kwargs = {k: deepcopy(v) for k, v in vars(self).items() if k not in ("method", "url")}
+        kwargs = {
+            key: deepcopy(getattr(self, key)) for key in self.__slots__
+            if key not in ("method", "url") and hasattr(self, key)
+        }
         self._sanitise_kwargs(kwargs)
 
         async with session.request(method=self.method.name, url=self.url, **kwargs) as response:
@@ -99,6 +104,15 @@ class AuthResponseHandler:
     :param token_prefix_default: Prefix to add to the header value for authorised calls to an endpoint.
     :param additional_headers: Extra headers to add to the final headers to ensure future successful requests.
     """
+
+    __slots__ = (
+        "logger",
+        "response",
+        "file_path",
+        "token_key",
+        "token_prefix_default",
+        "additional_headers",
+    )
 
     @property
     def token(self) -> str:
@@ -224,6 +238,9 @@ class AuthResponseTester:
     :param max_expiry: The max allowed time in seconds left until the token is due to expire.
         Useful for ensuring the token will be valid for long enough to run your operations.
     """
+
+    __slots__ = ("logger", "request", "response_test", "max_expiry")
+
     def __init__(
             self,
             request: AuthRequest | None = None,
@@ -293,6 +310,8 @@ class SocketHandler:
     :param port: The port to open on the localhost for this socket.
     :param timeout: The time in seconds to keep the socket listening for a request.
     """
+
+    __slots__ = ("port", "timeout", "_socket")
 
     def __init__(self, port: int = 8080, timeout: int = 120):
         #: The port to open on the localhost for this socket

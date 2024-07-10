@@ -57,37 +57,42 @@ class TestAuthRequest:
             }
         }
 
+    @staticmethod
+    def get_vars(obj: Any) -> dict[str, Any]:
+        return {k: getattr(obj, k) for k in obj.__slots__ if hasattr(obj, k)}
+
     def test_enrich_parameters(self, auth_request: AuthRequest):
-        original = deepcopy(vars(auth_request))
+
+        original = deepcopy(self.get_vars(auth_request))
         extension = {"code": 123}
         assert not hasattr(auth_request, "params")
 
         auth_request.enrich_parameters("params", extension)
-        assert vars(auth_request) == original
+        assert self.get_vars(auth_request) == original
 
         with auth_request.enrich_parameters("params", extension):
-            assert vars(auth_request) != original
+            assert self.get_vars(auth_request) != original
             assert hasattr(auth_request, "params")
             assert getattr(auth_request, "params") == extension
 
-        assert vars(auth_request) == original
+        assert self.get_vars(auth_request) == original
         assert not hasattr(auth_request, "params")
 
     def test_enrich_parameters_on_existing(self, auth_request: AuthRequest):
         auth_request.params = {"key": "value"}
-        original = deepcopy(vars(auth_request))
+        original = deepcopy(self.get_vars(auth_request))
         extension = {"code": 123}
 
         auth_request.enrich_parameters("params", extension)
-        assert vars(auth_request) == original
+        assert self.get_vars(auth_request) == original
         assert all(key not in auth_request.params for key in extension)
 
         with auth_request.enrich_parameters("params", extension):
-            assert vars(auth_request) != original
+            assert self.get_vars(auth_request) != original
             assert all(key in auth_request.params for key in extension)
             assert auth_request.params["code"] == extension["code"]
 
-        assert vars(auth_request) == original
+        assert self.get_vars(auth_request) == original
         assert all(key not in auth_request.params for key in extension)
 
     async def test_request(self, auth_request: AuthRequest, requests_mock: aioresponses):
