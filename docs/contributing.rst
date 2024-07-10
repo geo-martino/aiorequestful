@@ -1,7 +1,7 @@
 ============
 Contributing
 ============
-To contribute to AIORequestful, follow these steps:
+To contribute to aiorequestful, follow these steps:
 
 
 Setup your development environment

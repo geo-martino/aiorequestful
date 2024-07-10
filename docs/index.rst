@@ -14,9 +14,9 @@ Features
 What's in this documentation
 ----------------------------
 
-* Guides on getting started with AIOReqestful and other key functionality of the package (*Coming soon...*)
+* Guides on getting started with aiorequestful and other key functionality of the package (*Coming soon...*)
 * Release history
-* How to get started with contributing to AIOReqestful
+* How to get started with contributing to aiorequestful
 * Reference documentation
 
 .. include:: guides.install.rst
