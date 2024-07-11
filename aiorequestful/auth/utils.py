@@ -138,7 +138,6 @@ class AuthResponse(MutableMapping[str, Any]):
 
         header_key = "Authorization"
         header_prefix = self.get("token_type", self.token_prefix_default)
-        print(header_prefix, self.token_prefix_default)
 
         headers = {header_key: f"{header_prefix} {self.token}"}
         if self.additional_headers:
