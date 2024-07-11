@@ -17,6 +17,12 @@
 
 ## Contents
 * [Getting Started](#getting-started)
+  * [Sending a simple request](#sending-a-simple-request)
+  * [Handling the response payload](#handling-the-response-payload)
+  * [Authorising with the service](#authorising-with-the-service)
+  * [Caching responses](#caching-responses)
+  * [Handling error responses](#handling-error-responses)
+  * [Managing retries and backoff time](#managing-retries-and-backoff-time)
 * [Currently Supported](#currently-supported)
 * [Motivation and Aims](#motivation-and-aims)
 * [Release History](#release-history)
