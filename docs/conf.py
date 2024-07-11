@@ -11,6 +11,7 @@ from aiorequestful import MODULE_ROOT, PROGRAM_OWNER_NAME, PROGRAM_OWNER_USER, P
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = PROGRAM_NAME
+# noinspection PyShadowingBuiltins
 copyright = f"{datetime.now().year}, {PROGRAM_OWNER_NAME}"
 author = PROGRAM_OWNER_NAME
 
