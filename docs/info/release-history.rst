@@ -51,7 +51,7 @@ Fixed
 
 Fixed
 -----
-* Bug when awaiting :py:class:`.Timer.
+* Bug when awaiting :py:class:`.Timer`.
 
 
 0.5.1
@@ -82,7 +82,7 @@ Removed
   to get the timer value.
 
 Documentation
--------
+-------------
 * Add standard info for installing
 * Expand and reformat index
 

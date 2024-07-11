@@ -45,7 +45,7 @@ typehints_defaults = "braces"
 typehints_use_rtype = False
 
 templates_path = ["_templates"]
-exclude_patterns = ["_build"]
+exclude_patterns = ["_build", "reference/aiorequestful.rst"]
 
 suppress_warnings = [
     "sphinx_autodoc_typehints.forward_reference",

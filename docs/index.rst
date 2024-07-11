@@ -19,30 +19,31 @@ What's in this documentation
 * How to get started with contributing to aiorequestful
 * Reference documentation
 
-.. include:: guides.install.rst
+.. include:: guides/install.rst
+   :start-after: :
 
 .. toctree::
    :maxdepth: 1
    :caption: 📜 Guides & Getting Started
 
-   guides.install
+   guides/install
 
 .. toctree::
    :maxdepth: 1
    :caption: 🛠️ Project Info
 
-   release-history
-   contributing
+   info/release-history
+   info/contributing
 
 .. toctree::
    :maxdepth: 1
    :caption: 📖 Reference
 
-   aiorequestful.auth
-   aiorequestful.cache
-   aiorequestful.request
-   aiorequestful.response
-   aiorequestful.exception
-   aiorequestful.types
+   reference/aiorequestful.auth
+   reference/aiorequestful.cache
+   reference/aiorequestful.request
+   reference/aiorequestful.response
+   reference/aiorequestful.exception
+   reference/aiorequestful.types
 
    genindex

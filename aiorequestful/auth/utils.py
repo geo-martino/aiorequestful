@@ -27,7 +27,7 @@ class AuthRequest:
 
     :param method: HTTP request method (such as GET, POST, PUT, etc.).
     :param url: The URL of the request.
-    :param **kwargs: Any other kwargs required for a successful request.
+    :param kwargs: Any other kwargs required for a successful request.
         Arguments passed through to `.aiohttp.ClientSession.request`.
         See aiohttp reference for more info on available kwargs:
         https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request
