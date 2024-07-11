@@ -42,6 +42,9 @@ Changed
 * Rename AuthResponseTester to :py:class:`.AuthTester`.
   :py:meth:`.AuthTester.test` now only requires the :py:class:`.AuthResponse` for input.
 
+Fixed
+-----
+* Removed bad exception condition on retry timer in :py:class:`.RequestHandler`
 
 0.5.2
 =====
