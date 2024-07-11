@@ -338,7 +338,7 @@ class RequestHandler[A: Authoriser, P: Any]:
         )
 
     async def _handle_retry_timer(self, method: HTTPMethod, url: URLInput, timer: Timer | None) -> None:
-        if timer is None or not timer.can_increase or timer == 0:
+        if timer is None or not timer.can_increase:
             raise RequestError("Max retries exceeded")
 
         if not self._retry_logged:
