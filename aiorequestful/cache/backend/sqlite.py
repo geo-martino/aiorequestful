@@ -81,7 +81,7 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
 
         self.connection = connection
 
-    def __await__(self) -> Generator[Any, None, Self]:
+    def __await__(self) -> Generator[None, None, Self]:
         return self.create().__await__()
 
     async def commit(self) -> None:
@@ -314,7 +314,7 @@ class SQLiteCache(ResponseCache[SQLiteTable]):
 
         return self
 
-    def __await__(self) -> Generator[Any, None, Self]:
+    def __await__(self) -> Generator[None, None, Self]:
         return self._connect().__await__()
 
     async def __aexit__(self, __exc_type, __exc_value, __traceback) -> None:

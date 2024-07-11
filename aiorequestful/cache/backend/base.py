@@ -4,7 +4,7 @@ Base interface for implementations of all cache backends.
 import asyncio
 import logging
 from abc import ABCMeta, abstractmethod
-from collections.abc import MutableMapping, Callable, Collection, AsyncIterable, Mapping
+from collections.abc import MutableMapping, Callable, Collection, AsyncIterable, Mapping, Generator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Self, Unpack
@@ -105,7 +105,7 @@ class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
         self.connection = None
 
     @abstractmethod
-    def __await__(self) -> Self:
+    def __await__(self) -> Generator[None, None, Self]:
         raise NotImplementedError
 
     def __hash__(self):
@@ -292,7 +292,7 @@ class ResponseCache[R: ResponseRepository](MutableMapping[str, R], metaclass=ABC
         self._repositories: dict[str, R] = {}
 
     @abstractmethod
-    def __await__(self) -> Self:
+    def __await__(self) -> Generator[None, None, Self]:
         raise NotImplementedError
 
     async def __aenter__(self) -> Self:

@@ -12,7 +12,7 @@ import functools
 import itertools
 from abc import ABC, ABCMeta, abstractmethod
 from asyncio import sleep
-from collections.abc import Awaitable, Generator
+from collections.abc import Generator
 from copy import deepcopy
 from typing import SupportsInt, SupportsFloat
 
@@ -96,9 +96,9 @@ class Timer(SupportsInt, SupportsFloat, ABC):
     def __round__(self, n: int = None) -> float:
         return round(float(self._value), n)
 
-    def __await__(self) -> Awaitable:
+    def __await__(self) -> Generator[None, None, None]:
         """Asynchronously sleep for the current time set for this timer."""
-        return asyncio.sleep(self._value)
+        return asyncio.sleep(self._value).__await__()
 
     def __call__(self) -> None:
         """Sleep for the current time set for this timer."""
