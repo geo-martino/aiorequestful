@@ -36,7 +36,7 @@ and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0
 =====
 
 Changed
------
+-------
 * Rename AuthResponseHandler to :py:class:`.AuthResponse`.
   Implements MutableMapping to allow handling of response on the object directly.
 * Rename AuthResponseTester to :py:class:`.AuthTester`.
