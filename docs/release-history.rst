@@ -32,6 +32,20 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
 
+0.5.1
+=====
+
+Changed
+-------
+* Removed ability to pass response to methods in :py:class:`.AuthResponseHandler`.
+  Now only the stored response is used always.
+
+
+Fixed
+-----
+* Headers not passed to response tester. Now works as expected.
+
+
 0.5.0
 =====
 

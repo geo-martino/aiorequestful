@@ -10,6 +10,7 @@ import secrets
 import sys
 import uuid
 from abc import ABCMeta
+from collections.abc import Awaitable
 from http import HTTPMethod
 from typing import Any, Self
 from urllib.parse import unquote
@@ -22,13 +23,20 @@ from aiorequestful._utils import get_iterator
 from aiorequestful.auth.base import Authoriser, _DEFAULT_SERVICE_NAME
 from aiorequestful.auth.exception import AuthoriserError
 from aiorequestful.auth.utils import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
-from aiorequestful.types import ImmutableJSON, JSON, URLInput, UnitIterable, Headers
+from aiorequestful.types import ImmutableJSON, URLInput, UnitIterable, Headers
 
 
 class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
     """Abstract implementation of an :py:class:`.Authoriser` for OAuth2 authorisation flows."""
 
     __slots__ = ("token_request", "response_handler", "response_tester")
+
+    @property
+    def is_token_valid(self) -> Awaitable[bool]:
+        """Check if the currently loaded token is valid"""
+        return self.response_tester(
+            response=self.response_handler.response, headers=self.response_handler.headers
+        )
 
     def __init__(
             self,
@@ -54,17 +62,16 @@ class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
             "Authorization": f"Basic {credentials_encoded}",
         }
 
-    async def _request_token(self, session: ClientSession, request: AuthRequest, params: dict[str, Any] = None) -> JSON:
+    async def _request_token(self, session: ClientSession, request: AuthRequest, params: dict[str, Any] = None) -> None:
         with request.enrich_parameters("params", params if params else {}):
             async with request(session=session) as r:
-                response = await r.json()
+                self.response_handler.response = await r.json()
 
-        self.response_handler.enrich_response(response, refresh_token=params.get("refresh_token"))
+        self.response_handler.enrich_response(refresh_token=params.get("refresh_token"))
 
-        sanitised_response = self.response_handler.sanitise_response(response)
+        sanitised_response = self.response_handler.sanitised_response
         kind = "generated" if not params.get("grant_type") == "refresh_token" else "refreshed"
         self.logger.debug(f"Auth response {kind}: {sanitised_response}")
-        return response
 
 
 class ClientCredentialsFlow(OAuth2Authoriser):
@@ -149,7 +156,7 @@ class ClientCredentialsFlow(OAuth2Authoriser):
         response = self.response_handler.get_response()
         loaded = response is not None and response.items()
 
-        valid = await self.response_tester(response=response)
+        valid = await self.response_tester(response=response, headers=self.response_handler.headers)
 
         if not valid:
             if loaded:
@@ -160,18 +167,18 @@ class ClientCredentialsFlow(OAuth2Authoriser):
 
             params = self._generate_request_token_params()
             async with ClientSession() as session:
-                response = await self._request_token(session=session, request=self.token_request, params=params)
+                await self._request_token(session=session, request=self.token_request, params=params)
 
-            valid = await self.response_tester(response=response)
+            valid = await self.is_token_valid
 
-        if not response:
+        if not self.response_handler.response:
             raise AuthoriserError("Could not generate or load a token")
         if not valid:
-            sanitised_response = self.response_handler.sanitise_response(response)
+            sanitised_response = self.response_handler.sanitised_response
             raise AuthoriserError(f"Auth response is still not valid: {sanitised_response}")
 
         self.logger.debug("Access token is valid. Saving...")
-        self.response_handler.save_response_to_file(response=response)
+        self.response_handler.save_response_to_file()
 
         return self.response_handler.headers
 
@@ -348,25 +355,25 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
             async with ClientSession() as session:
                 code = await self._authorise_user(session=session)
                 params = self._generate_request_token_params(code=code)
-                response = await self._request_token(session=session, request=self.token_request, params=params)
+                await self._request_token(session=session, request=self.token_request, params=params)
 
-        valid = await self.response_tester(response=response)
+        valid = await self.is_token_valid
 
         if not valid and loaded:
-            response, valid = await self._handle_invalid_loaded_response(response=response)
+            valid = await self._handle_invalid_loaded_response(response=response)
 
-        if not response:
+        if not self.response_handler.response:
             raise AuthoriserError("Could not generate or load a token")
         if not valid:
-            sanitised_response = self.response_handler.sanitise_response(response)
+            sanitised_response = self.response_handler.sanitised_response
             raise AuthoriserError(f"Auth response is still not valid: {sanitised_response}")
 
         self.logger.debug("Access token is valid. Saving...")
-        self.response_handler.save_response_to_file(response=response)
+        self.response_handler.save_response_to_file()
 
         return self.response_handler.headers
 
-    async def _handle_invalid_loaded_response(self, response: ImmutableJSON) -> tuple[JSON, bool]:
+    async def _handle_invalid_loaded_response(self, response: ImmutableJSON) -> bool:
         valid = False
         refreshed = False
 
@@ -377,8 +384,9 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
                 )
 
                 params = self._generate_refresh_token_params(refresh_token=response["refresh_token"])
-                response = await self._request_token(session=session, request=self.refresh_request, params=params)
-                valid = await self.response_tester(response=response)
+                await self._request_token(session=session, request=self.refresh_request, params=params)
+
+                valid = await self.is_token_valid
                 refreshed = True
 
             if not valid:
@@ -390,11 +398,11 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
 
                 code = await self._authorise_user(session=session)
                 params = self._generate_request_token_params(code=code)
-                response = await self._request_token(session=session, request=self.token_request, params=params)
+                await self._request_token(session=session, request=self.token_request, params=params)
 
-                valid = await self.response_tester(response=response)
+                valid = await self.is_token_valid
 
-        return response, valid
+        return valid
 
     def _display_message(self, message: str, level: int = logging.INFO) -> None:
         """Log a message and ensure it is displayed to the user no matter the logger configuration."""

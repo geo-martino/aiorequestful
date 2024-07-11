@@ -60,7 +60,7 @@ class AuthRequest:
 
     @contextmanager
     def enrich_parameters(
-            self, key: Literal["data", "params", "json"], value: dict[str, Any]
+            self, key: Literal["data", "params", "json", "headers"], value: dict[str, Any]
     ) -> Generator[None, None, None]:
         """
         Temporarily append data to the parameters of a request within a context,
@@ -122,20 +122,23 @@ class AuthResponseHandler:
     )
 
     @property
-    def token(self) -> str:
+    def token(self) -> str | None:
         """Extract the token from the stored response."""
         if not self.response:
-            raise AuthoriserError("Stored response is not available.")
+            return
 
         if self.token_key not in self.response:
             raise AuthoriserError(
-                f"Did not find valid token at key: {self.token_key} | {self.sanitise_response()}"
+                f"Did not find valid token at key: {self.token_key} | {self.sanitised_response}"
             )
         return str(self.response[self.token_key])
 
     @property
     def headers(self) -> Headers:
         """Generate headers from the stored response, adding all additional headers as needed."""
+        if not self.response:
+            return {}
+
         header_key = "Authorization"
         header_prefix = self.response.get("token_type", self.token_prefix_default)
 
@@ -143,6 +146,26 @@ class AuthResponseHandler:
         if self.additional_headers:
             headers.update(self.additional_headers)
         return headers
+
+    @property
+    def sanitised_response(self) -> JSON:
+        """
+        Returns a reformatted response, making it safe to log by removing sensitive values at predefined keys.
+        """
+        if not self.response:
+            return {}
+
+        def _clean_value(value: Any) -> str:
+            value = str(value)
+            if len(value) < 5:
+                return ""
+            return f"{value[:5]}..."
+
+        response_clean = {k: _clean_value(v) if str(k).endswith("_token") else v for k, v in self.response.items()}
+        if self.token_key in response_clean:
+            response_clean[self.token_key] = _clean_value(response_clean[self.token_key])
+
+        return response_clean
 
     def __init__(
             self,
@@ -167,46 +190,23 @@ class AuthResponseHandler:
         #: Extra headers to add to the final headers to ensure future successful requests.
         self.additional_headers = additional_headers
 
-    def sanitise_response(self, response: ImmutableJSON = None) -> JSON:
+    def enrich_response(self, refresh_token: str = None) -> None:
         """
-        Returns a reformatted ``response``, making it safe to log by removing sensitive values at predefined keys.
-        If no ``response`` is given, uses the stored response.
-        """
-        response = response or self.response
-        if not response:
-            return {}
-
-        def _clean_value(value: Any) -> str:
-            value = str(value)
-            if len(value) < 5:
-                return ""
-            return f"{value[:5]}..."
-
-        response_clean = {k: _clean_value(v) if str(k).endswith("_token") else v for k, v in response.items()}
-        if self.token_key in response_clean:
-            response_clean[self.token_key] = _clean_value(response_clean[self.token_key])
-
-        return response_clean
-
-    def enrich_response(self, response: MutableJSON = None, refresh_token: str = None) -> None:
-        """
-        Extends the ``response`` by adding granted and expiry time information to it.
+        Extends the response by adding granted and expiry time information to it.
         Adds the given ``refresh_token`` to the response if one is not present.
-        If no ``response`` is given, uses the stored response.
         """
-        response = response or self.response
-        if not response:
+        if not self.response:
             return
 
         # add granted and expiry times to token
-        response["granted_at"] = datetime.now().timestamp()
-        if "expires_in" in response:
-            expires_at = response["granted_at"] + float(response["expires_in"])
-            response["expires_at"] = expires_at
+        self.response["granted_at"] = datetime.now().timestamp()
+        if "expires_in" in self.response:
+            expires_at = self.response["granted_at"] + float(self.response["expires_in"])
+            self.response["expires_at"] = expires_at
 
         # request usually does return a new refresh token, but add the previous one if not
-        if "refresh_token" not in response and refresh_token:
-            response["refresh_token"] = refresh_token
+        if "refresh_token" not in self.response and refresh_token:
+            self.response["refresh_token"] = refresh_token
 
     def load_response_from_file(self) -> JSON | None:
         """Load a stored response from given path"""
@@ -219,17 +219,12 @@ class AuthResponseHandler:
 
         return self.response
 
-    def save_response_to_file(self, response: MutableJSON = None) -> None:
-        """
-        Save a ``response`` to given path.
-        If a ``response`` is given, updates the stored response.
-        If no ``response`` is given, saves the stored response.
-        """
-        self.response = response or self.response
+    def save_response_to_file(self) -> None:
+        """Save the stored response to the stored file path."""
         if not self.file_path or not self.response:
             return
 
-        self.logger.debug(f"Saving authorisation code response: {self.sanitise_response()}")
+        self.logger.debug(f"Saving authorisation code response: {self.sanitised_response}")
         with open(self.file_path, "w") as file:
             json.dump(self.response, file, indent=2)
 

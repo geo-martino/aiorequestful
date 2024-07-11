@@ -134,8 +134,7 @@ class TestAuthResponseHandler:
     def test_get_token(self, response_handler: AuthResponseHandler, response: JSON):
         # no response set
         assert not response_handler.response
-        with pytest.raises(AuthoriserError, match="not available"):
-            assert response_handler.token
+        assert response_handler.token is None
 
         # no response contains invalid key
         response_handler.response = {"key": "value"}
@@ -148,6 +147,10 @@ class TestAuthResponseHandler:
         assert response_handler.token == response[response_handler.token_key]
 
     def test_generate_headers(self, response_handler: AuthResponseHandler, response: JSON):
+        # no response set
+        assert not response_handler.response
+        assert response_handler.headers == {}
+
         response_handler.response = response
         assert len(response_handler.headers) == 1
         assert response_handler.headers["Authorization"] == f"{response["token_type"]} {response_handler.token}"
@@ -161,13 +164,15 @@ class TestAuthResponseHandler:
             "Authorization": f"Basic {response_handler.token}",
         } | response_handler.additional_headers
 
-    def test_sanitise_response(self, response_handler: AuthResponseHandler, response: JSON):
+    def test_sanitised_response(self, response_handler: AuthResponseHandler, response: JSON):
         assert not response_handler.response
+        assert not response_handler.sanitised_response
 
         response["refresh_token"] = "this is a very secret refresh token"
         assert response_handler.token_key in response
 
-        result = response_handler.sanitise_response(response)
+        response_handler.response = response
+        result = response_handler.sanitised_response
         assert result[response_handler.token_key] != response[response_handler.token_key]
 
         token_keys = [key for key in result if key.endswith("_token")]
@@ -176,13 +181,14 @@ class TestAuthResponseHandler:
 
         # processes stored response if response not given
         response_handler.response = response
-        assert response_handler.sanitise_response() == result
+        assert response_handler.sanitised_response == result
 
     def test_enrich_response(self, response_handler: AuthResponseHandler, response: JSON):
         assert not response_handler.response
         assert all(key not in response for key in response_enrich_keys)
 
-        response_handler.enrich_response(response, refresh_token="i am a refresh token")
+        response_handler.response = response
+        response_handler.enrich_response(refresh_token="i am a refresh token")
         assert all(key in response for key in response_enrich_keys)
 
         sleep(0.1)
@@ -227,7 +233,8 @@ class TestAuthResponseHandler:
         assert not response_handler.file_path.exists()
 
         # saves and updates stored response
-        response_handler.save_response_to_file(response)
+        response_handler.response = response
+        response_handler.save_response_to_file()
         assert response_handler.response == response
         with open(response_handler.file_path, "r") as f:
             assert json.load(f) == response
@@ -236,8 +243,8 @@ class TestAuthResponseHandler:
         response_new = {"key1": "value1"}
         assert response_new != response
 
-        response_handler.save_response_to_file(response_new)
-        assert response_handler.response == response_new
+        response_handler.response = response_new
+        response_handler.save_response_to_file()
         with open(response_handler.file_path, "r") as f:
             response_file = json.load(f)
 

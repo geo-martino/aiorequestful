@@ -20,7 +20,7 @@ from aiorequestful.auth.exception import AuthoriserError
 from aiorequestful.auth.oauth2 import OAuth2Authoriser, ClientCredentialsFlow, AuthorisationCodeFlow, \
     AuthorisationCodePKCEFlow
 from aiorequestful.auth.utils import AuthRequest, AuthResponseHandler
-from aiorequestful.types import JSON
+from aiorequestful.types import JSON, Headers
 from tests.auth.utils import response_enrich_keys
 from tests.utils import path_token
 
@@ -70,11 +70,11 @@ class OAuth2Tester(ABC):
         requests_mock.post(re.compile(str(authoriser.token_request.url)), callback=exchange_response_for_token)
 
         async with ClientSession() as session:
-            response = await authoriser._request_token(
+            await authoriser._request_token(
                 session, request=authoriser.token_request, params=token_request_params
             )
 
-        assert_response(response, auth_response)
+        assert_response(authoriser.response_handler.response, auth_response)
 
 
 class TestClientCredentialsFlow(OAuth2Tester):
@@ -97,17 +97,30 @@ class TestClientCredentialsFlow(OAuth2Tester):
 
     @pytest.fixture
     def mock_request_token(self, authoriser: ClientCredentialsFlow, mocker: MockerFixture) -> AsyncMock:
+        def _request_token(*_, **__) -> None:
+            authoriser.response_handler.response = {
+                authoriser.response_handler.token_key: "request"
+            }
+
         return mocker.patch.object(
             ClientCredentialsFlow,
             attribute="_request_token",
-            side_effect=AsyncMock(return_value={authoriser.response_handler.token_key: "request"})
+            side_effect=_request_token,
+            new_callable=AsyncMock,
         )
 
     @pytest.fixture
-    def mock_tester(self, mocker: MockerFixture) -> AsyncMock:
+    def mock_tester(self, authoriser: ClientCredentialsFlow, mocker: MockerFixture) -> AsyncMock:
+        def response_tester(response: JSON, headers: Headers) -> bool:
+            assert headers == authoriser.response_handler.headers
+            return True
+
         return mocker.patch.object(
-            ClientCredentialsFlow, attribute="response_tester", side_effect=AsyncMock(return_value=True)
-        )
+                ClientCredentialsFlow,
+                attribute="response_tester",
+                side_effect=response_tester,
+                new_callable=AsyncMock,
+            )
 
     @pytest.fixture
     def mock_save(self, mocker: MockerFixture) -> AsyncMock:
@@ -159,7 +172,9 @@ class TestClientCredentialsFlow(OAuth2Tester):
             mock_save: AsyncMock,
             mocker: MockerFixture,
     ):
-        async def tester(response: dict) -> bool:
+        async def tester(response: dict, headers: Headers) -> bool:
+            assert headers == authoriser.response_handler.headers
+
             original_token = auth_response[authoriser.response_handler.token_key]
             if response[authoriser.response_handler.token_key] == original_token:
                 return False
@@ -187,7 +202,8 @@ class TestClientCredentialsFlow(OAuth2Tester):
         assert not authoriser.response_handler.response
         assert not authoriser.response_handler.file_path
 
-        async def tester(response: dict) -> bool:
+        async def tester(response: dict, headers: Headers) -> bool:
+            assert headers == authoriser.response_handler.headers
             return bool(response)
 
         mock_tester = mocker.patch.object(
@@ -281,17 +297,31 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
         )
 
     @pytest.fixture
-    def mock_request_token(self, authoriser: AuthorisationCodeFlow, mocker: MockerFixture) -> AsyncMock:
+    def mock_request_token(self, authoriser: ClientCredentialsFlow, mocker: MockerFixture) -> AsyncMock:
+        def _request_token(*_, **__) -> JSON:
+            authoriser.response_handler.response = {
+                authoriser.response_handler.token_key: "request"
+            }
+            return authoriser.response_handler.response
+
         return mocker.patch.object(
             AuthorisationCodeFlow,
             attribute="_request_token",
-            side_effect=AsyncMock(return_value={authoriser.response_handler.token_key: "request"})
+            side_effect=_request_token,
+            new_callable=AsyncMock,
         )
 
     @pytest.fixture
-    def mock_tester(self, mocker: MockerFixture) -> AsyncMock:
+    def mock_tester(self, authoriser: ClientCredentialsFlow, mocker: MockerFixture) -> AsyncMock:
+        def response_tester(response: JSON = None, headers: Headers = None) -> bool:
+            assert headers == authoriser.response_handler.headers
+            return True
+
         return mocker.patch.object(
-            AuthorisationCodeFlow, attribute="response_tester", side_effect=AsyncMock(return_value=True)
+            AuthorisationCodeFlow,
+            attribute="response_tester",
+            side_effect=response_tester,
+            new_callable=AsyncMock,
         )
 
     @pytest.fixture
@@ -352,11 +382,9 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
 
         request_params = authoriser._generate_refresh_token_params(refresh_token=refresh_token)
         async with ClientSession() as session:
-            response = await authoriser._request_token(
-                session, request=authoriser.refresh_request, params=request_params
-            )
+            await authoriser._request_token(session, request=authoriser.refresh_request, params=request_params)
 
-        assert_response(response, auth_response)
+        assert_response(authoriser.response_handler.response, auth_response)
         assert "refresh_token" not in getattr(authoriser.token_request, "params", {})
 
     ###########################################################################
@@ -371,14 +399,14 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
             mock_tester: AsyncMock,
     ):
         assert "refresh_token" not in auth_response
-        result, valid = await authoriser._handle_invalid_loaded_response(auth_response)
+        valid = await authoriser._handle_invalid_loaded_response(auth_response)
 
         mock_user_auth.assert_called_once()
         mock_request_token.assert_called_once()
         mock_tester.assert_called_once()
 
-        assert result == await mock_request_token()
-        assert valid == await mock_tester()
+        assert authoriser.response_handler.response == await mock_request_token()
+        assert valid
 
     async def test_handle_invalid_loaded_response_with_no_refresh_request(
             self,
@@ -390,14 +418,14 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
     ):
         authoriser.refresh_request = None
         auth_response["refresh_token"] = "token"
-        result, valid = await authoriser._handle_invalid_loaded_response(auth_response)
+        valid = await authoriser._handle_invalid_loaded_response(auth_response)
 
         mock_user_auth.assert_called_once()
         mock_request_token.assert_called_once()
         mock_tester.assert_called_once()
 
-        assert result == await mock_request_token()
-        assert valid == await mock_tester()
+        assert authoriser.response_handler.response == await mock_request_token()
+        assert valid
 
     async def test_handle_invalid_loaded_response_with_valid_refresh(
             self,
@@ -408,14 +436,14 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
             mock_tester: AsyncMock,
     ):
         auth_response["refresh_token"] = "token"
-        result, valid = await authoriser._handle_invalid_loaded_response(auth_response)
+        valid = await authoriser._handle_invalid_loaded_response(auth_response)
 
         mock_user_auth.assert_not_called()
         mock_request_token.assert_called_once()
         mock_tester.assert_called_once()
 
-        assert result == await mock_request_token()
-        assert valid == await mock_tester()
+        assert authoriser.response_handler.response == await mock_request_token()
+        assert valid
 
     async def test_handle_invalid_loaded_response_with_invalid_refresh(
             self,
@@ -424,12 +452,18 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
             mock_user_auth: AsyncMock,
             mocker: MockerFixture,
     ):
-        async def request_token(params: dict[str, Any], **__) -> dict[str, str]:
+        async def request_token(params: dict[str, Any], **__) -> JSON:
             if params["grant_type"] == "refresh_token":
-                return {authoriser.response_handler.token_key: "refresh"}
-            return {authoriser.response_handler.token_key: "request"}
+                response = {authoriser.response_handler.token_key: "refresh"}
+            else:
+                response = {authoriser.response_handler.token_key: "request"}
 
-        async def tester(response: dict) -> bool:
+            authoriser.response_handler.response = response
+            return response
+
+        async def tester(response: dict, headers: Headers) -> bool:
+            assert headers == authoriser.response_handler.headers
+
             if response["access_token"] == "refresh":
                 return False
             return True
@@ -446,12 +480,12 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
 
         # with refresh token and good response
         auth_response["refresh_token"] = "token"
-        result, valid = await authoriser._handle_invalid_loaded_response(auth_response)
+        valid = await authoriser._handle_invalid_loaded_response(auth_response)
 
         mock_user_auth.assert_called_once()
         assert mock_request_token.call_count == 2
 
-        assert result == await request_token(params={"grant_type": "request"})
+        assert authoriser.response_handler.response == await request_token(params={"grant_type": "request"})
         assert valid
 
     ###########################################################################
@@ -505,7 +539,9 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
             mock_save: AsyncMock,
             mocker: MockerFixture,
     ):
-        async def tester(response: dict) -> bool:
+        async def tester(response: dict, headers: Headers) -> bool:
+            assert headers == authoriser.response_handler.headers
+
             original_token = auth_response[authoriser.response_handler.token_key]
             if response[authoriser.response_handler.token_key] == original_token:
                 return False
