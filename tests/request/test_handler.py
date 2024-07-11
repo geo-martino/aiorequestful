@@ -288,3 +288,12 @@ class TestRequestHandler:
         mock_handle_response.assert_called_once()
         mock_log_response.assert_called_once()
         mock_handle_retry_timer.assert_called_once()
+
+    async def test_request_fails(
+            self,
+            request_handler: RequestHandler,
+            url: URL,
+    ):
+        assert request_handler.closed
+        with pytest.raises(RequestError):
+            await request_handler.get(url)

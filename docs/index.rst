@@ -9,6 +9,7 @@ An Asynchronous HTTP and RESTful API requests framework for asyncio and Python
 Features
 --------
 
+Coming soon...
 
 
 What's in this documentation
@@ -20,13 +21,18 @@ What's in this documentation
 * Reference documentation
 
 .. include:: guides/install.rst
-   :start-after: :
+   :start-after: .. START
 
 .. toctree::
    :maxdepth: 1
    :caption: 📜 Guides & Getting Started
 
    guides/install
+   guides/request
+   guides/response
+   guides/auth
+   guides/cache
+   guides/timer
 
 .. toctree::
    :maxdepth: 1

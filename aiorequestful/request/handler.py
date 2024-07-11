@@ -121,7 +121,7 @@ class RequestHandler[A: Authoriser, P: Any]:
             cls,
             authoriser: A | None = None,
             cache: ResponseCache | None = None,
-            payload_handler: PayloadHandler = None,
+            payload_handler: PayloadHandler[P] = None,
             response_handlers: Sequence[StatusHandler] = (),
             wait_timer: Timer = None,
             retry_timer: Timer = None,
@@ -246,6 +246,12 @@ class RequestHandler[A: Authoriser, P: Any]:
         :raise ResponseError: For any request which returns an invalid response.
         :raise StatusHandlerError: For any request which returns a response with a status that could not be handled.
         """
+        if self.closed:
+            raise RequestError(
+                "Could not send a request as the session is closed. "
+                "Enter the RequestHandler's context to start a new session."
+            )
+
         method = HTTPMethod(method.upper())
         retry_timer = self.retry_timer
 
