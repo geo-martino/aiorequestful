@@ -52,7 +52,7 @@ python -m pip install {program_name_lower}
 ```
 
 There are optional dependencies that you may install for optional functionality. 
-For the current list of optional dependency groups, [read the docs](https://{program_owner_user}.github.io/{program_name_lower}/howto.install.html)
+For the current list of optional dependency groups, [read the docs](https://{program_owner_user}.github.io/{program_name_lower}/guides/install.html)
 
 
 ## Getting Started
@@ -322,7 +322,7 @@ of this part of the process in future applications and use cases.
 ## Release History
 
 For change and release history, 
-check out the [documentation](https://{program_owner_user}.github.io/{program_name_lower}/release-history.html).
+check out the [documentation](https://{program_owner_user}.github.io/{program_name_lower}/info/release-history.html).
 
 
 ## Contributing and Reporting Issues
@@ -331,7 +331,7 @@ If you have any suggestions, wish to contribute, or have any issues to report, p
 via the issues tab or make a new pull request with your new feature for review. 
 
 For more info on how to contribute to {program_name}, 
-check out the [documentation](https://{program_owner_user}.github.io/{program_name_lower}/contributing.html).
+check out the [documentation](https://{program_owner_user}.github.io/{program_name_lower}/info/contributing.html).
 
 
 I hope you enjoy using {program_name}!

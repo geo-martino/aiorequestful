@@ -52,7 +52,7 @@ python -m pip install aiorequestful
 ```
 
 There are optional dependencies that you may install for optional functionality. 
-For the current list of optional dependency groups, [read the docs](https://geo-martino.github.io/aiorequestful/howto.install.html)
+For the current list of optional dependency groups, [read the docs](https://geo-martino.github.io/aiorequestful/guides/install.html)
 
 
 ## Getting Started
@@ -322,7 +322,7 @@ of this part of the process in future applications and use cases.
 ## Release History
 
 For change and release history, 
-check out the [documentation](https://geo-martino.github.io/aiorequestful/release-history.html).
+check out the [documentation](https://geo-martino.github.io/aiorequestful/info/release-history.html).
 
 
 ## Contributing and Reporting Issues
@@ -331,7 +331,7 @@ If you have any suggestions, wish to contribute, or have any issues to report, p
 via the issues tab or make a new pull request with your new feature for review. 
 
 For more info on how to contribute to aiorequestful, 
-check out the [documentation](https://geo-martino.github.io/aiorequestful/contributing.html).
+check out the [documentation](https://geo-martino.github.io/aiorequestful/info/contributing.html).
 
 
 I hope you enjoy using aiorequestful!
