@@ -40,7 +40,6 @@ Changed
 * Removed ability to pass response to methods in :py:class:`.AuthResponseHandler`.
   Now only the stored response is used always.
 
-
 Fixed
 -----
 * Headers not passed to response tester. Now works as expected.

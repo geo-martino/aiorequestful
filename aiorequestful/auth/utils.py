@@ -104,9 +104,6 @@ class AuthResponseHandler:
     Handle saving, loading, enriching, sanitising etc. of responses.
     Also handles token extraction and header generation from token responses.
 
-    Ideally, usage of this class should ensure that the stored response is valid i.e.
-    a response should not be stored on this class if it is invalid.
-
     :param file_path: Path to use for loading and saving a token.
     :param token_prefix_default: Prefix to add to the header value for authorised calls to an endpoint.
     :param additional_headers: Extra headers to add to the final headers to ensure future successful requests.
