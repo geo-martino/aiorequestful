@@ -5,11 +5,13 @@ Welcome to aiorequestful!
 An Asynchronous HTTP and RESTful API requests framework for asyncio and Python
 ------------------------------------------------------------------------------
 
-
-Features
---------
-
-Coming soon...
+* Full implementation of authorisation handling for authorising with any HTTP service, including OAuth2 flows
+* Automatic response payload caching and cache retrieval on a per-endpoint basis to allow fine control over
+  how and when response data is cached
+* Customisable payload response handling to transform responses before returning and caching
+* Automatic handling of common HTTP error status codes to ensure guaranteed successful requests
+* Formulaic approach to retries and backoff handling to ensure smooth requests on sensitive services to handle
+  'Too Many Requests' style errors
 
 
 What's in this documentation

@@ -9,7 +9,7 @@ This object will handle, amongst other things, these core processes:
 * creating sessions
 * sending requests
 * processing responses as configured
-* handling error responses including backoff/retry/wait time
+* handling error responses including backoff/retry time
 * authorising if configured
 * caching responses if configured
 
