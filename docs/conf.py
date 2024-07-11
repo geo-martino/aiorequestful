@@ -48,9 +48,11 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build"]
 
 suppress_warnings = [
-    # TODO: figure out how to suppress warnings for the following warnings:
-    #  - WARNING: No classes found for inheritance diagram
-    #  - WARNING: Cannot resolve forward reference in type annotations of ...: name 'T' is not defined
+    "sphinx_autodoc_typehints.forward_reference",
+    # TODO: sphinx_autodoc_typehints.forward_reference not yet supported.
+    #  See https://github.com/tox-dev/sphinx-autodoc-typehints/pull/433/files
+    "sphinx.ext.inheritance_diagram",
+    # TODO: Suppress 'WARNING: No classes found for inheritance diagram'
 ]
 
 
