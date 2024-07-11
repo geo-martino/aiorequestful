@@ -16,12 +16,11 @@
 ### An asynchronous HTTP and RESTful API requests framework for asyncio and Python
 
 ## Contents
-* [Getting Started](#quick-guides)
+* [Getting Started](#getting-started)
 * [Currently Supported](#currently-supported)
+* [Motivation and Aims](#motivation-and-aims)
 * [Release History](#release-history)
-* [Contributing](#contributing)
-* [Motivation & Aims](#aims)
-* [Author Notes](#notes)
+* [Contributing and Reporting Issues](#contributing-and-reporting-issues)
 
 > [!NOTE]  
 > This readme provides a brief overview of the program. 
@@ -57,25 +56,47 @@ For more detailed guides, check out the [documentation](https://{program_owner_u
 - **OAuth2 Flows**: {oauth2}
 
 
+## Motivation and Aims
+
+The key aim of this package is to provide a common, performant framework for interacting with REST API services 
+and other HTTP frameworks.
+
+As a new developer, I found it incredibly confusing understanding the myriad ways one can authenticate with a REST API, 
+which to select for my use case, how to implement it in code and so on. 
+I then found it a great challenge learning how to get the maximum performance from my applications for HTTP requests 
+while balancing this against issues when accessing sensitive services which often return 'Too Many Requests' 
+type errors as I improved the performance of my applications.
+As such, I separated out all the code relating to HTTP requests into this package so that other developers can use 
+what I have learned in their applications too.
+
+This package should implement the following:
+- all possible authorisation flows for these types of services
+- intelligent caching per endpoint for these responses to many common and appropriate cache backends to allow for:
+  - storing of responses in a 
+  - reduction in request-response times by retrieving responses from the cache instead of HTTP requests
+  - reducing load on sensitive HTTP-based services by hitting the cache instead, 
+    thereby reducing 'Too Many Requests' type errors
+- automatic handling of common HTTP error status codes to ensure guaranteed successful requests
+- other quality of life additions to ensure a large volume of responses are returned in the fastest possible time 
+  e.g. backoff/retry/wait timers
+
+In so doing, I hope to make the access of data from these services as seamless as possible and provide the foundation 
+of this part of the process in future applications and use cases.
+
+
 ## Release History
 
 For change and release history, 
 check out the [documentation](https://{program_owner_user}.github.io/{program_name_lower}/release-history.html).
 
 
-## Contributing
+## Contributing and Reporting Issues
 
-For info on how to contribute to {program_name}, 
+If you have any suggestions, wish to contribute, or have any issues to report, please do let me know 
+via the issues tab or make a new pull request with your new feature for review. 
+
+For more info on how to contribute to {program_name}, 
 check out the [documentation](https://{program_owner_user}.github.io/{program_name_lower}/contributing.html).
 
 
-<a id="aims"></a>
-## Motivations & Aims
-
-***Coming soon...***
-
-
-<a id="notes"></a>
-## Author notes, contributions, and reporting issues
-
-***Coming soon...***
+I hope you enjoy using {program_name}!
