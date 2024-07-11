@@ -14,7 +14,7 @@ from aioresponses import aioresponses, CallbackResult
 from yarl import URL
 
 from aiorequestful.auth.exception import AuthoriserError
-from aiorequestful.auth.utils import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
+from aiorequestful.auth.utils import AuthRequest, AuthResponse, AuthTester, SocketHandler
 from aiorequestful.types import JSON, ImmutableHeaders
 from tests.auth.utils import response_enrich_keys
 from tests.utils import path_token
@@ -114,8 +114,8 @@ class TestAuthRequest:
 class TestAuthResponseHandler:
 
     @pytest.fixture
-    def response_handler(self) -> AuthResponseHandler:
-        return AuthResponseHandler()
+    def response(self) -> AuthResponse:
+        return AuthResponse()
 
     @pytest.fixture(params=[path_token])
     def file_path(self, path: Path) -> Path:
@@ -123,139 +123,140 @@ class TestAuthResponseHandler:
         return path
 
     @pytest.fixture
-    def response(self, response_handler: AuthResponseHandler) -> JSON:
+    def auth_response(self, response: AuthResponse) -> JSON:
         return {
-            response_handler.token_key: "fake access token",
+            response.token_key: "fake access token",
             "token_type": "Bearer",
             "expires_in": 3600,
             "scope": "test-read",
         }
 
-    def test_get_token(self, response_handler: AuthResponseHandler, response: JSON):
+    def test_get_token(self, response: AuthResponse, auth_response: JSON):
         # no response set
-        assert not response_handler.response
-        assert response_handler.token is None
+        assert not response
+        with pytest.raises(AuthoriserError, match="not available"):
+            assert response.token
 
         # no response contains invalid key
-        response_handler.response = {"key": "value"}
-        assert response_handler.token_key not in response_handler.response
-        with pytest.raises(AuthoriserError, match=response_handler.token_key):
-            assert response_handler.token
+        response.replace({"key": "value"})
+        assert response.token_key not in response
+        with pytest.raises(AuthoriserError, match=response.token_key):
+            assert response.token
 
         # valid response
-        response_handler.response = response
-        assert response_handler.token == response[response_handler.token_key]
+        response.replace(auth_response)
+        assert response.token == auth_response[response.token_key]
 
-    def test_generate_headers(self, response_handler: AuthResponseHandler, response: JSON):
+    def test_generate_headers(self, response: AuthResponse, auth_response: JSON):
         # no response set
-        assert not response_handler.response
-        assert response_handler.headers == {}
+        assert not response
+        assert response.headers == {}
 
-        response_handler.response = response
-        assert len(response_handler.headers) == 1
-        assert response_handler.headers["Authorization"] == f"{response["token_type"]} {response_handler.token}"
+        response.replace(auth_response)
+        assert len(response.headers) == 1
+        assert response.headers["Authorization"] == f"{auth_response["token_type"]} {response.token}"
 
-        response_handler.token_prefix_default = "Basic"
+        response.token_prefix_default = "Basic"
         response.pop("token_type")
-        assert response_handler.headers["Authorization"] == f"Basic {response_handler.token}"
+        assert response.headers["Authorization"] == f"Basic {response.token}"
 
-        response_handler.additional_headers = {"header1": "value1"}
-        assert response_handler.headers == {
-            "Authorization": f"Basic {response_handler.token}",
-        } | response_handler.additional_headers
+        response.additional_headers = {"header1": "value1"}
+        assert response.headers == {
+            "Authorization": f"Basic {response.token}",
+        } | response.additional_headers
 
-    def test_sanitised_response(self, response_handler: AuthResponseHandler, response: JSON):
-        assert not response_handler.response
-        assert not response_handler.sanitised_response
+    def test_sanitised_response(self, response: AuthResponse, auth_response: JSON):
+        assert not response
+        assert not response.sanitised
 
-        response["refresh_token"] = "this is a very secret refresh token"
-        assert response_handler.token_key in response
+        auth_response["refresh_token"] = "this is a very secret refresh token"
+        assert response.token_key in auth_response
 
-        response_handler.response = response
-        result = response_handler.sanitised_response
-        assert result[response_handler.token_key] != response[response_handler.token_key]
+        response.replace(auth_response)
+        result = response.sanitised
+        assert result[response.token_key] != auth_response[response.token_key]
 
         token_keys = [key for key in result if key.endswith("_token")]
         assert len(token_keys) > 1
-        assert all(response[key] != result[key] for key in token_keys)
+        assert all(auth_response[key] != result[key] for key in token_keys)
 
         # processes stored response if response not given
-        response_handler.response = response
-        assert response_handler.sanitised_response == result
+        response.replace(auth_response)
+        assert response.sanitised == result
 
-    def test_enrich_response(self, response_handler: AuthResponseHandler, response: JSON):
-        assert not response_handler.response
-        assert all(key not in response for key in response_enrich_keys)
+    def test_enrich_response(self, response: AuthResponse, auth_response: JSON):
+        assert not response
+        assert all(key not in auth_response for key in response_enrich_keys)
 
-        response_handler.response = response
-        response_handler.enrich_response(refresh_token="i am a refresh token")
+        response._response = auth_response
+        response.enrich(refresh_token="i am a refresh token")
         assert all(key in response for key in response_enrich_keys)
 
         sleep(0.1)
-        response_handler.response = deepcopy(response)
-        response_handler.enrich_response(refresh_token="this is a very secret refresh token")
+        response._response = deepcopy(auth_response)
+        response.enrich(refresh_token="this is a very secret refresh token")
 
         # overwrites these keys
         for key in ("granted_at", "expires_at"):
-            assert response_handler.response[key] != response[key]
+            assert response[key] != auth_response[key]
 
         # does not overwrite these keys
         for key in ("refresh_token",):
-            assert response_handler.response[key] == response[key]
+            assert response[key] == auth_response[key]
 
-    def test_load_response_from_file(self, response_handler: AuthResponseHandler, response: JSON, file_path: Path):
+    def test_load_response_from_file(self, response: AuthResponse, auth_response: JSON, file_path: Path):
         # does nothing when no file path given
-        assert not response_handler.file_path
-        assert not response_handler.load_response_from_file()
-        assert not response_handler.response
+        assert not response.file_path
+        assert not response.load_response_from_file()
+        assert not response
 
         # does nothing when non-existent path given
-        response_handler.file_path = file_path.with_name("i do not exist")
-        assert not response_handler.load_response_from_file()
-        assert not response_handler.response
+        response.file_path = file_path.with_name("i do not exist")
+        assert not response.load_response_from_file()
+        assert not response
 
-        response_handler.file_path = file_path
-        assert response_handler.load_response_from_file() == response_handler.response
-        response_reduced = {k: v for k, v in response_handler.response.items() if k not in response_enrich_keys}
-        assert response_reduced == response
+        response.file_path = file_path
+        assert response.load_response_from_file() == response
+        response_reduced = {k: v for k, v in response.items() if k not in response_enrich_keys}
+        assert response_reduced == auth_response
 
-    def test_save_response_to_file(self, response_handler: AuthResponseHandler, response: JSON, tmp_path: Path):
+    def test_save_response_to_file(self, response: AuthResponse, auth_response: JSON, tmp_path: Path):
         # does nothing when no file path given
-        assert not response_handler.file_path
-        response_handler.save_response_to_file()
-        assert not response_handler.response
+        assert not response.file_path
+        response.save_response_to_file()
+        assert not response
 
         # does nothing when no response given
         file_path = tmp_path.joinpath("token").with_suffix(".json")
-        response_handler.file_path = file_path
-        assert not response_handler.response
-        response_handler.save_response_to_file()
-        assert not response_handler.file_path.exists()
+        response.file_path = file_path
+        assert not response
+        response.save_response_to_file()
+        assert not response.file_path.exists()
 
         # saves and updates stored response
-        response_handler.response = response
-        response_handler.save_response_to_file()
-        assert response_handler.response == response
-        with open(response_handler.file_path, "r") as f:
-            assert json.load(f) == response
+        response.replace(auth_response)
+        response.save_response_to_file()
+        assert response == auth_response
+        with open(response.file_path, "r") as f:
+            assert json.load(f) == auth_response
 
         # saves and updates stored response for new response
         response_new = {"key1": "value1"}
-        assert response_new != response
+        assert response_new != auth_response
 
-        response_handler.response = response_new
-        response_handler.save_response_to_file()
-        with open(response_handler.file_path, "r") as f:
+        response.replace(response_new)
+        response.save_response_to_file()
+        with open(response.file_path, "r") as f:
             response_file = json.load(f)
 
         assert response_file == response_new
-        assert response_file != response
+        assert response_file != auth_response
 
 
-class TestAuthResponseTester:
+class TestAuthTester:
     @pytest.fixture
-    def response_tester(self) -> AuthResponseTester:
-        return AuthResponseTester()
+    def tester(self) -> AuthTester:
+        return AuthTester()
 
     @pytest.fixture
     def test_request(self) -> AuthRequest:
@@ -274,16 +275,16 @@ class TestAuthResponseTester:
             return CallbackResult(payload={"result": "success!"})
         return CallbackResult(payload={"error": "message"})
 
-    def test_response(self, response_tester: AuthResponseTester):
-        assert response_tester._test_response({"result": "valid"})
-        assert not response_tester._test_response({"error": "message"})
+    def test_response(self, tester: AuthTester):
+        assert tester._test_response({"result": "valid"})
+        assert not tester._test_response({"error": "message"})
 
-    def test_expiry(self, response_tester: AuthResponseTester):
+    def test_expiry(self, tester: AuthTester):
         # defaults to valid when test not set to run
-        assert not response_tester.max_expiry
-        assert response_tester._test_expiry({"expires_at": (datetime.now() + timedelta(seconds=1)).timestamp()})
-        response_tester.max_expiry = 1000
-        assert response_tester._test_expiry({"key": "id not contain valid keys to run the test"})
+        assert not tester.max_expiry
+        assert tester._test_expiry({"expires_at": (datetime.now() + timedelta(seconds=1)).timestamp()})
+        tester.max_expiry = 1000
+        assert tester._test_expiry({"key": "id not contain valid keys to run the test"})
 
         response = {
             "access_token": "fake access token",
@@ -291,54 +292,47 @@ class TestAuthResponseTester:
             "expires_in": 3600,
             "scope": "test-read",
         }
-        response_tester.max_expiry = 1500
-        assert response_tester._test_expiry(response)
+        tester.max_expiry = 1500
+        assert tester._test_expiry(response)
 
         response["expires_in"] = 100
-        assert not response_tester._test_expiry(response)
+        assert not tester._test_expiry(response)
 
         # expires_at value takes priority
         response["expires_at"] = (datetime.now() + timedelta(seconds=3600)).timestamp()
-        assert response_tester._test_expiry(response)
+        assert tester._test_expiry(response)
 
         response["expires_at"] = (datetime.now() + timedelta(seconds=100)).timestamp()
-        assert not response_tester._test_expiry(response)
+        assert not tester._test_expiry(response)
 
     async def test_token(
-            self, response_tester: AuthResponseTester, test_request: AuthRequest, requests_mock: aioresponses
+            self, tester: AuthTester, test_request: AuthRequest, requests_mock: aioresponses
     ):
         # defaults to valid when test not set to run
-        assert not response_tester.request
-        assert await response_tester._test_token(None)
-        assert await response_tester._test_token({"Authorization": "Basic invalid"})
+        assert not tester.request
+        assert await tester._test_token(None)
+        assert await tester._test_token({"Authorization": "Basic invalid"})
 
-        response_tester.request = test_request
-        response_tester.response_test = self.response_test
+        tester.request = test_request
+        tester.response_test = self.response_test
         requests_mock.get(re.compile(str(test_request.url)), callback=self.callback, repeat=True)
 
-        assert await response_tester._test_token({"Authorization": "Bearer valid"})
-        assert not await response_tester._test_token({"Authorization": "Basic invalid"})
+        assert await tester._test_token({"Authorization": "Bearer valid"})
+        assert not await tester._test_token({"Authorization": "Basic invalid"})
 
-    async def test_all(self, response_tester: AuthResponseTester, test_request: AuthRequest):
-        assert await response_tester(
-            response={
-                "result": "valid",
-                "expires_at": (datetime.now() + timedelta(seconds=3000)).timestamp()
-            },
-            headers={"Authorization": "Basic invalid"}
-        )
+    async def test_all(self, tester: AuthTester, test_request: AuthRequest):
+        response = AuthResponse()
+        response.update({
+            "result": "valid",
+            "expires_at": (datetime.now() + timedelta(seconds=3000)).timestamp()
+        })
+        assert await tester(response)
 
-        response_tester.request = test_request
-        response_tester.response_test = self.response_test
-        response_tester.max_expiry = 5000
+        tester.request = test_request
+        tester.response_test = self.response_test
+        tester.max_expiry = 5000
 
-        assert not await response_tester(
-            response={
-                "result": "valid",
-                "expires_at": (datetime.now() + timedelta(seconds=3000)).timestamp()
-            },
-            headers={"Authorization": "Basic invalid"}
-        )
+        assert not await tester(response)
 
 
 class TestSocketHandler:

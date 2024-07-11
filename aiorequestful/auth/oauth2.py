@@ -22,28 +22,26 @@ from yarl import URL
 from aiorequestful._utils import get_iterator
 from aiorequestful.auth.base import Authoriser, _DEFAULT_SERVICE_NAME
 from aiorequestful.auth.exception import AuthoriserError
-from aiorequestful.auth.utils import AuthRequest, AuthResponseHandler, AuthResponseTester, SocketHandler
-from aiorequestful.types import ImmutableJSON, URLInput, UnitIterable, Headers
+from aiorequestful.auth.utils import AuthRequest, AuthResponse, AuthTester, SocketHandler
+from aiorequestful.types import URLInput, UnitIterable, Headers
 
 
 class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
     """Abstract implementation of an :py:class:`.Authoriser` for OAuth2 authorisation flows."""
 
-    __slots__ = ("token_request", "response_handler", "response_tester")
+    __slots__ = ("token_request", "response", "tester")
 
     @property
     def is_token_valid(self) -> Awaitable[bool]:
         """Check if the currently loaded token is valid"""
-        return self.response_tester(
-            response=self.response_handler.response, headers=self.response_handler.headers
-        )
+        return self.tester(response=self.response)
 
     def __init__(
             self,
             token_request: AuthRequest,
             service_name: str = _DEFAULT_SERVICE_NAME,
-            response_handler: AuthResponseHandler = None,
-            response_tester: AuthResponseTester = None,
+            response_handler: AuthResponse = None,
+            response_tester: AuthTester = None,
     ):
         super().__init__(service_name=service_name)
 
@@ -51,9 +49,9 @@ class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
         self.token_request = token_request
 
         #: Handles saving and loading token request responses and generates headers from a token request
-        self.response_handler = response_handler if response_handler is not None else AuthResponseHandler()
+        self.response = response_handler if response_handler is not None else AuthResponse()
         #: Tests the response given from the token request to ensure the token is valid
-        self.response_tester = response_tester if response_tester is not None else AuthResponseTester()
+        self.tester = response_tester if response_tester is not None else AuthTester()
 
     @staticmethod
     def _encode_client_credentials_as_headers(client_id: str, client_secret: str) -> Headers:
@@ -65,11 +63,11 @@ class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
     async def _request_token(self, session: ClientSession, request: AuthRequest, params: dict[str, Any] = None) -> None:
         with request.enrich_parameters("params", params if params else {}):
             async with request(session=session) as r:
-                self.response_handler.response = await r.json()
+                self.response.replace(await r.json())
 
-        self.response_handler.enrich_response(refresh_token=params.get("refresh_token"))
+        self.response.enrich(refresh_token=params.get("refresh_token"))
 
-        sanitised_response = self.response_handler.sanitised_response
+        sanitised_response = self.response.sanitised
         kind = "generated" if not params.get("grant_type") == "refresh_token" else "refreshed"
         self.logger.debug(f"Auth response {kind}: {sanitised_response}")
 
@@ -153,10 +151,11 @@ class ClientCredentialsFlow(OAuth2Authoriser):
         return obj
 
     async def authorise(self):
-        response = self.response_handler.get_response()
-        loaded = response is not None and response.items()
+        if not self.response:
+            self.response.load_response_from_file()
+        loaded = bool(self.response)
 
-        valid = await self.response_tester(response=response, headers=self.response_handler.headers)
+        valid = await self.is_token_valid
 
         if not valid:
             if loaded:
@@ -171,16 +170,15 @@ class ClientCredentialsFlow(OAuth2Authoriser):
 
             valid = await self.is_token_valid
 
-        if not self.response_handler.response:
+        if not self.response:
             raise AuthoriserError("Could not generate or load a token")
         if not valid:
-            sanitised_response = self.response_handler.sanitised_response
-            raise AuthoriserError(f"Auth response is still not valid: {sanitised_response}")
+            raise AuthoriserError(f"Auth response is still not valid: {self.response.sanitised}")
 
         self.logger.debug("Access token is valid. Saving...")
-        self.response_handler.save_response_to_file()
+        self.response.save_response_to_file()
 
-        return self.response_handler.headers
+        return self.response.headers
 
     @staticmethod
     def _generate_request_token_params() -> dict[str, Any]:
@@ -321,8 +319,8 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
             service_name: str = _DEFAULT_SERVICE_NAME,
             socket_handler: SocketHandler = None,
             redirect_uri: URLInput = None,
-            response_handler: AuthResponseHandler = None,
-            response_tester: AuthResponseTester = None,
+            response_handler: AuthResponse = None,
+            response_tester: AuthTester = None,
     ):
         super().__init__(
             service_name=service_name,
@@ -347,8 +345,9 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
         self.socket_handler = socket_handler
 
     async def authorise(self):
-        response = self.response_handler.get_response()
-        loaded = response is not None and response.items()
+        if not self.response:
+            self.response.load_response_from_file()
+        loaded = bool(self.response)
 
         if not loaded:
             self.logger.debug("Saved access token not found. Generating new token...")
@@ -360,30 +359,30 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
         valid = await self.is_token_valid
 
         if not valid and loaded:
-            valid = await self._handle_invalid_loaded_response(response=response)
+            valid = await self._handle_invalid_loaded_response()
 
-        if not self.response_handler.response:
+        if not self.response:
             raise AuthoriserError("Could not generate or load a token")
         if not valid:
-            sanitised_response = self.response_handler.sanitised_response
+            sanitised_response = self.response.sanitised
             raise AuthoriserError(f"Auth response is still not valid: {sanitised_response}")
 
         self.logger.debug("Access token is valid. Saving...")
-        self.response_handler.save_response_to_file()
+        self.response.save_response_to_file()
 
-        return self.response_handler.headers
+        return self.response.headers
 
-    async def _handle_invalid_loaded_response(self, response: ImmutableJSON) -> bool:
+    async def _handle_invalid_loaded_response(self) -> bool:
         valid = False
         refreshed = False
 
         async with ClientSession() as session:
-            if self.refresh_request and "refresh_token" in response:
+            if self.refresh_request and "refresh_token" in self.response:
                 self.logger.debug(
                     "Loaded access token is not valid and refresh data found. Refreshing token and testing..."
                 )
 
-                params = self._generate_refresh_token_params(refresh_token=response["refresh_token"])
+                params = self._generate_refresh_token_params(refresh_token=self.response["refresh_token"])
                 await self._request_token(session=session, request=self.refresh_request, params=params)
 
                 valid = await self.is_token_valid
@@ -544,8 +543,8 @@ class AuthorisationCodePKCEFlow(AuthorisationCodeFlow):
             service_name: str = _DEFAULT_SERVICE_NAME,
             socket_handler: SocketHandler = None,
             redirect_uri: URLInput = None,
-            response_handler: AuthResponseHandler = None,
-            response_tester: AuthResponseTester = None,
+            response_handler: AuthResponse = None,
+            response_tester: AuthTester = None,
             pkce_code_length: int = 128,
     ):
         if not 43 <= pkce_code_length <= 128:

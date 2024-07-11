@@ -4,7 +4,7 @@ Authoriser specific utilities which can be used to build implementations of auth
 import json
 import logging
 import socket
-from collections.abc import MutableMapping, Generator, Coroutine, Callable, Awaitable
+from collections.abc import MutableMapping, Generator, Coroutine, Callable, Awaitable, Mapping
 from contextlib import contextmanager, asynccontextmanager
 from copy import deepcopy
 from datetime import datetime
@@ -99,7 +99,7 @@ class AuthRequest:
             yield response
 
 
-class AuthResponseHandler:
+class AuthResponse(MutableMapping[str, Any]):
     """
     Handle saving, loading, enriching, sanitising etc. of responses.
     Also handles token extraction and header generation from token responses.
@@ -111,7 +111,7 @@ class AuthResponseHandler:
 
     __slots__ = (
         "logger",
-        "response",
+        "_response",
         "file_path",
         "token_key",
         "token_prefix_default",
@@ -121,23 +121,24 @@ class AuthResponseHandler:
     @property
     def token(self) -> str | None:
         """Extract the token from the stored response."""
-        if not self.response:
-            return
+        if not self:
+            raise AuthoriserError("Stored response is not available.")
 
-        if self.token_key not in self.response:
+        if self.token_key not in self:
             raise AuthoriserError(
-                f"Did not find valid token at key: {self.token_key} | {self.sanitised_response}"
+                f"Did not find valid token at key: {self.token_key} | {self.sanitised}"
             )
-        return str(self.response[self.token_key])
+        return str(self[self.token_key])
 
     @property
     def headers(self) -> Headers:
         """Generate headers from the stored response, adding all additional headers as needed."""
-        if not self.response:
+        if not self:
             return {}
 
         header_key = "Authorization"
-        header_prefix = self.response.get("token_type", self.token_prefix_default)
+        header_prefix = self.get("token_type", self.token_prefix_default)
+        print(header_prefix, self.token_prefix_default)
 
         headers = {header_key: f"{header_prefix} {self.token}"}
         if self.additional_headers:
@@ -145,11 +146,11 @@ class AuthResponseHandler:
         return headers
 
     @property
-    def sanitised_response(self) -> JSON:
+    def sanitised(self) -> JSON:
         """
         Returns a reformatted response, making it safe to log by removing sensitive values at predefined keys.
         """
-        if not self.response:
+        if not self:
             return {}
 
         def _clean_value(value: Any) -> str:
@@ -158,7 +159,7 @@ class AuthResponseHandler:
                 return ""
             return f"{value[:5]}..."
 
-        response_clean = {k: _clean_value(v) if str(k).endswith("_token") else v for k, v in self.response.items()}
+        response_clean = {k: _clean_value(v) if str(k).endswith("_token") else v for k, v in self.items()}
         if self.token_key in response_clean:
             response_clean[self.token_key] = _clean_value(response_clean[self.token_key])
 
@@ -174,7 +175,7 @@ class AuthResponseHandler:
         self.logger: logging.Logger = logging.getLogger(__name__)
 
         #: Stores the currently valid response
-        self.response: MutableJSON | None = None
+        self._response: MutableJSON = {}
 
         #: Path to use for loading and saving a token.
         self.file_path: Path | None = Path(file_path).with_suffix(".json") if file_path else None
@@ -187,23 +188,43 @@ class AuthResponseHandler:
         #: Extra headers to add to the final headers to ensure future successful requests.
         self.additional_headers = additional_headers
 
-    def enrich_response(self, refresh_token: str = None) -> None:
+    def __getitem__(self, __key):
+        return self._response[__key]
+
+    def __setitem__(self, __key, __value):
+        self._response[__key] = __value
+
+    def __delitem__(self, __key):
+        del self._response[__key]
+
+    def __len__(self):
+        return len(self._response)
+
+    def __iter__(self):
+        return iter(self._response)
+
+    def replace(self, response: Mapping[str, Any]) -> None:
+        """Replace the currently stored response with a new ``response``"""
+        self.clear()
+        self.update(response)
+
+    def enrich(self, refresh_token: str = None) -> None:
         """
         Extends the response by adding granted and expiry time information to it.
         Adds the given ``refresh_token`` to the response if one is not present.
         """
-        if not self.response:
+        if not self:
             return
 
         # add granted and expiry times to token
-        self.response["granted_at"] = datetime.now().timestamp()
-        if "expires_in" in self.response:
-            expires_at = self.response["granted_at"] + float(self.response["expires_in"])
-            self.response["expires_at"] = expires_at
+        self["granted_at"] = datetime.now().timestamp()
+        if "expires_in" in self:
+            expires_at = self["granted_at"] + float(self["expires_in"])
+            self["expires_at"] = expires_at
 
         # request usually does return a new refresh token, but add the previous one if not
-        if "refresh_token" not in self.response and refresh_token:
-            self.response["refresh_token"] = refresh_token
+        if "refresh_token" not in self and refresh_token:
+            self["refresh_token"] = refresh_token
 
     def load_response_from_file(self) -> JSON | None:
         """Load a stored response from given path"""
@@ -212,28 +233,21 @@ class AuthResponseHandler:
 
         self.logger.debug("Saved authorisation code response found. Loading...")
         with open(self.file_path, "r") as file:  # load token
-            self.response = json.load(file)
+            self._response = json.load(file)
 
-        return self.response
+        return self._response
 
     def save_response_to_file(self) -> None:
         """Save the stored response to the stored file path."""
-        if not self.file_path or not self.response:
+        if not self.file_path or not self:
             return
 
-        self.logger.debug(f"Saving authorisation code response: {self.sanitised_response}")
+        self.logger.debug(f"Saving authorisation code response: {self.sanitised}")
         with open(self.file_path, "w") as file:
-            json.dump(self.response, file, indent=2)
-
-    def get_response(self) -> JSON | None:
-        """Return the loaded the authorisation response if found, or load it from file if available."""
-        response = self.response
-        if not response:
-            response = self.load_response_from_file()
-        return response
+            json.dump(self._response, file, indent=2)
 
 
-class AuthResponseTester:
+class AuthTester:
     """
     Run tests against the response of authorisation request to ensure its validity.
 
@@ -269,12 +283,10 @@ class AuthResponseTester:
         #: The max allowed time in seconds left until the token is due to expire
         self.max_expiry = max_expiry
 
-    def __call__(
-            self, response: ImmutableJSON | None = None, headers: ImmutableHeaders | None = None
-    ) -> Awaitable[bool]:
-        return self.test(response=response, headers=headers)
+    def __call__(self, response: AuthResponse | None = None) -> Awaitable[bool]:
+        return self.test(response=response)
 
-    async def test(self, response: ImmutableJSON | None = None, headers: ImmutableHeaders | None = None) -> bool:
+    async def test(self, response: AuthResponse | None = None) -> bool:
         """Test validity of the ``response`` and given ``headers``. Returns True if all tests pass, False otherwise"""
         if not response:
             return False
@@ -285,7 +297,11 @@ class AuthResponseTester:
         if result:
             result = self._test_expiry(response=response)
         if result:
-            result = await self._test_token(headers=headers)
+            try:
+                headers = response.headers
+            except AuthoriserError:
+                headers = None
+            result = await self._test_token(headers)
 
         return result
 
