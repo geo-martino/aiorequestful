@@ -71,8 +71,8 @@ dev = [
 
 [project.urls]
 "Documentation" = "https://geo-martino.github.io/aiorequestful/"
-"Release Notes" = "https://geo-martino.github.io/aiorequestful/release-history.html"
-"Contribute" = "https://geo-martino.github.io/aiorequestful/contributing.html"
+"Release Notes" = "https://geo-martino.github.io/aiorequestful/info/release-history.html"
+"Contribute" = "https://geo-martino.github.io/aiorequestful/info/contributing.html"
 "Source code" = "https://github.com/geo-martino/aiorequestful"
 Issues = "https://github.com/geo-martino/aiorequestful/issues"
 
