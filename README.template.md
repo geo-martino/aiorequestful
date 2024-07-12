@@ -18,7 +18,7 @@
 * Full implementation of authorisation handling for authorising with any HTTP service, including OAuth2 flows
 * Automatic response payload caching and cache retrieval on a per-endpoint basis to allow fine control over
   how and when response data is cached
-* Customisable payload response handling to transform responses before returning and caching
+* Automatic payload response handling to transform responses before returning and caching
 * Automatic handling of common HTTP error status codes to ensure guaranteed successful requests
 * Formulaic approach to retries and backoff handling to ensure smooth requests on sensitive services to handle
   'Too Many Requests' style errors
@@ -309,8 +309,8 @@ This timer is the same for each new request so any increase in time
 
 ## Motivation and Aims
 
-The key aim of this package is to provide a common, performant framework for interacting with REST API services 
-and other HTTP frameworks.
+The key aim of this package is to provide a performant and extensible framework for interacting with 
+REST API services and other HTTP frameworks.
 
 As a new developer, I found it incredibly confusing understanding the myriad ways one can authenticate with a REST API, 
 which to select for my use case, how to implement it in code and so on. 
