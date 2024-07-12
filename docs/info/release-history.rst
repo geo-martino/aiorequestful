@@ -41,6 +41,10 @@ Changed
 * Moved all :py:class:`.Timer` implementations to base of package in timer.py
 * Moved all request exceptions to base of package in exception.py
 
+Documentation
+-------------
+* Finalise writing guides
+
 
 0.6.1
 =====
