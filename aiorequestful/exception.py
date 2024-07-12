@@ -17,3 +17,7 @@ class AIORequestfulImportError(AIORequestfulError, ImportError):
 
 class HTTPError(AIORequestfulError):
     """Exception raised for generic HTTP errors."""
+
+
+class RequestError(HTTPError):
+    """Exception raised for errors relating to HTTP requests."""

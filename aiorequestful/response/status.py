@@ -16,8 +16,8 @@ from typing import NoReturn
 from aiohttp import ClientResponse, ClientSession
 
 from aiorequestful.auth import Authoriser
-from aiorequestful.request.timer import Timer
 from aiorequestful.response.exception import ResponseError, StatusHandlerError
+from aiorequestful.timer import Timer
 
 
 class StatusHandler(ABC):

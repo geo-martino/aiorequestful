@@ -32,6 +32,16 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
 
+1.0.0
+=====
+
+Changed
+-------
+* Moved :py:class:`.RequestHandler` to base of package in request.py
+* Moved all :py:class:`.Timer` implementations to base of package in timer.py
+* Moved all request exceptions to base of package in exception.py
+
+
 0.6.1
 =====
 

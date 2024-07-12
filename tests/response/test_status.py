@@ -9,10 +9,10 @@ from aiohttp import ClientResponse, ClientSession, ClientRequest
 from aiohttp.helpers import TimerNoop
 from multidict import CIMultiDictProxy, CIMultiDict
 
-from aiorequestful.request.timer import StepCountTimer
 from aiorequestful.response.exception import ResponseError, StatusHandlerError
 from aiorequestful.response.status import StatusHandler, ClientErrorStatusHandler, UnauthorisedStatusHandler, \
     RateLimitStatusHandler
+from aiorequestful.timer import StepCountTimer
 from tests.auth.utils import MockAuthoriser
 
 

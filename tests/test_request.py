@@ -15,9 +15,9 @@ from aiorequestful.auth.basic import BasicAuthoriser
 from aiorequestful.cache.backend.base import ResponseCache
 from aiorequestful.cache.backend.sqlite import SQLiteCache
 from aiorequestful.cache.session import CachedSession
-from aiorequestful.request.exception import RequestError
-from aiorequestful.request.handler import RequestHandler
-from aiorequestful.request.timer import StepCountTimer, Timer
+from aiorequestful.exception import RequestError
+from aiorequestful.request import RequestHandler
+from aiorequestful.timer import StepCountTimer, Timer
 from aiorequestful.response.exception import ResponseError
 from aiorequestful.response.payload import JSONPayloadHandler, StringPayloadHandler
 from aiorequestful.response.status import ClientErrorStatusHandler, RateLimitStatusHandler, UnauthorisedStatusHandler

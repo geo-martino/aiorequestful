@@ -31,7 +31,8 @@ What's in this documentation
 
    guides/install
    guides/request
-   guides/response
+   guides/response.payload
+   guides/response.status
    guides/auth
    guides/cache
    guides/timer
@@ -52,6 +53,14 @@ What's in this documentation
    reference/aiorequestful.request
    reference/aiorequestful.response
    reference/aiorequestful.exception
+   reference/aiorequestful.timer
    reference/aiorequestful.types
+
+.. raw:: html
+
+   <hr>
+
+.. toctree::
+   :maxdepth: 1
 
    genindex

@@ -1,5 +1,8 @@
 """
 All operations relating to handling of requests to an HTTP service.
+
+This is the core module for handling requests and their responses
+including using authorisation and caching as necessary.
 """
 from __future__ import annotations
 
@@ -21,11 +24,11 @@ from aiorequestful._utils import format_url_log
 from aiorequestful.auth import Authoriser
 from aiorequestful.cache.backend import ResponseCache
 from aiorequestful.cache.session import CachedSession
-from aiorequestful.request.exception import RequestError
-from aiorequestful.request.timer import Timer
+from aiorequestful.exception import RequestError
 from aiorequestful.response.payload import StringPayloadHandler, PayloadHandler
 from aiorequestful.response.status import StatusHandler, ClientErrorStatusHandler, UnauthorisedStatusHandler, \
     RateLimitStatusHandler
+from aiorequestful.timer import Timer
 from aiorequestful.types import JSON, URLInput, Headers, MethodInput, RequestKwargs
 
 _DEFAULT_RESPONSE_HANDLERS = [
@@ -334,7 +337,8 @@ class RequestHandler[A: Authoriser, P: Any]:
         if response.status not in self.response_handlers:
             return False
 
-        return await self.response_handlers[response.status](
+        response_handler: StatusHandler = self.response_handlers[response.status]
+        return await response_handler(
             response=response,
             authoriser=self.authoriser,
             session=self.session,

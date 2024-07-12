@@ -2,7 +2,7 @@ from simple import *
 
 # PART 1
 
-from aiorequestful.request.timer import StepCountTimer
+from aiorequestful.timer import StepCountTimer
 
 request_handler.retry_timer = StepCountTimer(initial=0, count=3, step=0)
 
@@ -12,7 +12,7 @@ request_handler.retry_timer = StepCountTimer(initial=0, count=3, step=0.2)
 
 # PART 3
 
-from aiorequestful.request.timer import StepCeilingTimer
+from aiorequestful.timer import StepCeilingTimer
 
 request_handler.wait_timer = StepCeilingTimer(initial=0, final=1, step=0.1)
 

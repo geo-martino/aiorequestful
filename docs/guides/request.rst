@@ -26,6 +26,8 @@ Here, we request some data from an open API that requires no authentication to a
 Notice how the data type of the object we retrieve is a string, but we can see from the print
 that this is meant to be JSON data.
 
+.. _request-payload:
+
 Handling the response payload
 -----------------------------
 
@@ -49,6 +51,8 @@ We may also assign this :py:class:`.PayloadHandler` when we create the :py:class
 .. seealso::
    For more info on payload handling, see :ref:`guide-payload`.
 
+.. _request-auth:
+
 Authorising with the service
 ----------------------------
 
@@ -68,6 +72,8 @@ We may also assign this :py:class:`.Authoriser` when we create the :py:class:`.R
 
 .. seealso::
    For more info on authorising including other types of supported authorisation flows, see :ref:`guide-auth`.
+
+.. _request-cache:
 
 Caching responses
 -----------------
@@ -94,6 +100,7 @@ See :ref:`guide-cache` for more info on setting up cache repositories.
 .. seealso::
    For more info on setting a successful cache and other supported cache backends, see :ref:`guide-cache`.
 
+.. _request-status:
 
 Handling error responses
 ------------------------

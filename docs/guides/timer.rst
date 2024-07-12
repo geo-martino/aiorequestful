@@ -98,18 +98,18 @@ Increases time value by raising the current value to a given ``exponent`` until 
 Writing a :py:class:`.Timer`
 ----------------------------
 
-To implement a you will need to implement the abstract methods as below.
+To implement a :py:class:`.Timer`, you will need to implement the abstract methods as below.
 
-.. literalinclude:: /../aiorequestful/request/timer.py
+.. literalinclude:: /../aiorequestful/timer.py
    :language: Python
    :pyobject: Timer
 
 As an example, the following implements the :py:class:`.StepCountTimer`.
 
-.. literalinclude:: /../aiorequestful/request/timer.py
+.. literalinclude:: /../aiorequestful/timer.py
    :language: Python
    :pyobject: CountTimer
 
-.. literalinclude:: /../aiorequestful/request/timer.py
+.. literalinclude:: /../aiorequestful/timer.py
    :language: Python
    :pyobject: StepCountTimer

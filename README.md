@@ -241,7 +241,7 @@ As an example, if we want to simply retry the same request 3 times without any b
 we can set the following.
 
 ```python
-from aiorequestful.request.timer import StepCountTimer
+from aiorequestful.timer import StepCountTimer
 
 request_handler.retry_timer = StepCountTimer(initial=0, count=3, step=0)
 ```
@@ -267,7 +267,7 @@ This can be useful for sensitive services that often return 'Too Many Requests' 
 of requests at once.
 
 ```python
-from aiorequestful.request.timer import StepCeilingTimer
+from aiorequestful.timer import StepCeilingTimer
 
 request_handler.wait_timer = StepCeilingTimer(initial=0, final=1, step=0.1)
 ```

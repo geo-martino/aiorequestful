@@ -3,7 +3,7 @@ from typing import Any
 
 from yarl import URL
 
-from aiorequestful.request.handler import RequestHandler
+from aiorequestful.request import RequestHandler
 
 
 async def send_get_request(handler: RequestHandler, url: str | URL) -> Any:

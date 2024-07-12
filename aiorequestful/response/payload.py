@@ -20,7 +20,7 @@ class PayloadHandler[T: Any](ABC):
     @abstractmethod
     async def serialize(self, payload: str | bytes | bytearray | T) -> str:
         """Serialize the payload object to a string."""
-        return json.dumps(payload, indent=2)
+        raise NotImplementedError
 
     @abstractmethod
     async def deserialize(self, response: str | bytes | bytearray | ClientResponse | T) -> T:

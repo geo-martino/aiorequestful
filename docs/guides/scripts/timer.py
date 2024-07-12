@@ -1,6 +1,6 @@
 # PART 0
 
-from aiorequestful.request.timer import Timer
+from aiorequestful.timer import Timer
 
 timer = Timer()
 
@@ -18,7 +18,7 @@ timer.reset()  # reset the timer back to its initial settings
 
 # PART 1
 
-from aiorequestful.request.timer import StepCountTimer
+from aiorequestful.timer import StepCountTimer
 
 timer = StepCountTimer(initial=0, count=3, step=0.2)  # value = 0
 timer.increase()  # value = 0.2
@@ -28,7 +28,7 @@ timer.increase()  # value = 0.6 (max count of 3 reached)
 
 # PART 2
 
-from aiorequestful.request.timer import GeometricCountTimer
+from aiorequestful.timer import GeometricCountTimer
 
 timer = GeometricCountTimer(initial=2, count=3, factor=2)  # value = 2
 timer.increase()  # value = 4
@@ -38,7 +38,7 @@ timer.increase()  # value = 16 (max count of 3 reached)
 
 # PART 3
 
-from aiorequestful.request.timer import PowerCountTimer
+from aiorequestful.timer import PowerCountTimer
 
 timer = PowerCountTimer(initial=2, count=3, exponent=2)  # value = 2
 timer.increase()  # value = 4
@@ -48,7 +48,7 @@ timer.increase()  # value = 256 (max count of 3 reached)
 
 # PART 4
 
-from aiorequestful.request.timer import StepCeilingTimer
+from aiorequestful.timer import StepCeilingTimer
 
 timer = StepCeilingTimer(initial=0, final=0.5, step=0.2)  # value = 0
 timer.increase()  # value = 0.2
@@ -58,7 +58,7 @@ timer.increase()  # value = 0.5
 
 # PART 5
 
-from aiorequestful.request.timer import GeometricCeilingTimer
+from aiorequestful.timer import GeometricCeilingTimer
 
 timer = GeometricCeilingTimer(initial=2, final=10, factor=2)  # value = 2
 timer.increase()  # value = 4
@@ -68,7 +68,7 @@ timer.increase()  # value = 10
 
 # PART 6
 
-from aiorequestful.request.timer import PowerCeilingTimer
+from aiorequestful.timer import PowerCeilingTimer
 
 timer = PowerCeilingTimer(initial=2, final=60, exponent=2)  # value = 2
 timer.increase()  # value = 4
