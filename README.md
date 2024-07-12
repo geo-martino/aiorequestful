@@ -131,7 +131,7 @@ By doing so, we ensure that our `RequestHandler` only returns data in a format t
 The `JSONPayloadHandler` is set to fail if the data given to it is not valid JSON data.
 
 > [!NOTE]
-> For more info on payload handling, [read the docs](https://geo-martino.github.io/aiorequestful/guides/response.html#guide-payload).
+> For more info on payload handling, [read the docs](https://geo-martino.github.io/aiorequestful/guides/response.payload.html#guide-payload).
 
 
 ### Authorising with the service
@@ -221,7 +221,7 @@ print(type(result).__name__)
 ```
 
 > [!NOTE]
-> For more info on `StatusHandler` and how they handle each response type, [read the docs](https://geo-martino.github.io/aiorequestful/guides/response.html#guide-status).
+> For more info on `StatusHandler` and how they handle each response type, [read the docs](https://geo-martino.github.io/aiorequestful/guides/response.status.html#guide-status).
 
 
 ### Managing retries and backoff time
