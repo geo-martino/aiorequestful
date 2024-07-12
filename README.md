@@ -190,7 +190,7 @@ print(result)
 However, this example will not cache anything as we have not set up repositories for the endpoints we require.
 Check out the 
 [documentation on caching](https://geo-martino.github.io/aiorequestful/guides/cache.html#guide-cache) 
-for more info on settings up cache repositories.
+for more info on setting up cache repositories.
 
 > [!NOTE]
 > We cannot dynamically assign a cache to a instance of `RequestHandler`.
@@ -203,7 +203,7 @@ for more info on settings up cache repositories.
 ### Handling error responses
 
 Often, we will receive error responses that we will need to handle.
-We can have the :py:class:`RequestHandler` handle these responses by assigning `StatusHandler` objects.
+We can have the `RequestHandler` handle these responses by assigning `StatusHandler` objects.
 
 ```python
 from aiorequestful.response.status import ClientErrorStatusHandler, UnauthorisedStatusHandler, RateLimitStatusHandler

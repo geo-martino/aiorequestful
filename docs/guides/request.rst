@@ -40,7 +40,7 @@ to the :py:class:`.RequestHandler` to retrieve the data type we require.
 By doing so, we ensure that our :py:class:`.RequestHandler` only returns data in a format that we expect.
 The :py:class:`.JSONPayloadHandler` is set to fail if the data given to it is not valid JSON data.
 
-We may also assign this :py:class:`.PayloadHandler` when we create the object too.
+We may also assign this :py:class:`.PayloadHandler` when we create the :py:class:`.RequestHandler` too.
 
 .. literalinclude:: scripts/request/payload.py
    :language: Python
@@ -60,7 +60,7 @@ We can assign an :py:class:`.Authoriser` to the :py:class:`.RequestHandler` to h
    :start-after: # PART 1
    :end-before: # PART 2
 
-We may also assign this :py:class:`.Authoriser` when we create the object too.
+We may also assign this :py:class:`.Authoriser` when we create the :py:class:`.RequestHandler` too.
 
 .. literalinclude:: scripts/request/auth.py
    :language: Python
@@ -85,7 +85,7 @@ from the cache first before making an HTTP request to get the data.
    :start-after: # PART 1
 
 However, this example will not cache anything as we have not set up repositories for the endpoints we require.
-See :ref:`guide-cache` for more info on settings up cache repositories.
+See :ref:`guide-cache` for more info on setting up cache repositories.
 
 .. note::
    We cannot dynamically assign a cache to an instance of :py:class:`.RequestHandler`.
@@ -99,14 +99,14 @@ Handling error responses
 ------------------------
 
 Often, we will receive error responses that we will need to handle.
-We can have the :py:class:`RequestHandler` handle these responses by assigning :py:class:`.StatusHandler` objects.
+We can have the :py:class:`.RequestHandler` handle these responses by assigning :py:class:`.StatusHandler` objects.
 
 .. literalinclude:: scripts/request/status.py
    :language: Python
    :start-after: # PART 1
    :end-before: # PART 2
 
-We may also assign these :py:class:`.StatusHandler` objects when we create the object too.
+We may also assign these :py:class:`.StatusHandler` objects when we create the :py:class:`.RequestHandler` too.
 
 .. literalinclude:: scripts/request/status.py
    :language: Python
@@ -117,7 +117,7 @@ We may also assign these :py:class:`.StatusHandler` objects when we create the o
    The order of the :py:class:`.StatusHandler` objects is important in determining which one has priority to
    handle a response when the status codes of the :py:class:`.StatusHandler` objects overlap.
 
-   The :py:class:`.ClientErrorStatusHandler` is responsible for handling all client error status codes
+   In this example, the :py:class:`.ClientErrorStatusHandler` is responsible for handling all client error status codes
    i.e. ``400``-``499``, the :py:class:`.UnauthorisedStatusHandler` is responsible for ``401`` status codes and the
    :py:class:`.RateLimitStatusHandler` is responsible for ``429`` status codes.
 
