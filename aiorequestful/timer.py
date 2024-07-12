@@ -163,7 +163,7 @@ class CountTimer(Timer, metaclass=ABCMeta):
 
 class StepCountTimer(CountTimer):
     """
-    Increases time value by a given ``step`` amount a distinct number of times.
+    Increases timer value by a given ``step`` amount a distinct number of times.
 
     :param initial: The starting value to use.
     :param count: The amount of times to increase the value.
@@ -210,7 +210,7 @@ class StepCountTimer(CountTimer):
 
 class GeometricCountTimer(CountTimer):
     """
-    Increases time value by multiplying the current value by a given ``factor`` a distinct number of times.
+    Increases timer value by multiplying the current value by a given ``factor`` a distinct number of times.
 
     :param initial: The starting value to use.
     :param count: The amount of times to increase the value.
@@ -261,7 +261,7 @@ class GeometricCountTimer(CountTimer):
 
 class PowerCountTimer(CountTimer):
     """
-    Increases time value by raising the current value to a given ``exponent`` a distinct number of times.
+    Increases timer value by raising the current value to a given ``exponent`` a distinct number of times.
 
     :param initial: The starting value to use.
     :param count: The amount of times to increase the value.
@@ -364,7 +364,7 @@ class CeilingTimer(Timer, metaclass=ABCMeta):
 
 class StepCeilingTimer(CeilingTimer):
     """
-    Increases time value by a given ``step`` amount until a maximum value is reached.
+    Increases timer value by a given ``step`` amount until a maximum value is reached.
 
     :param initial: The starting value to use.
     :param final: The value at which to stop increasing.
@@ -407,7 +407,7 @@ class StepCeilingTimer(CeilingTimer):
 
 class GeometricCeilingTimer(CeilingTimer):
     """
-    Increases time value by multiplying the current value by a given ``factor`` until a maximum value is reached.
+    Increases timer value by multiplying the current value by a given ``factor`` until a maximum value is reached.
 
     :param initial: The starting value to use.
     :param final: The value at which to stop increasing.
@@ -450,7 +450,7 @@ class GeometricCeilingTimer(CeilingTimer):
 
 class PowerCeilingTimer(CeilingTimer):
     """
-    Increases time value by raising the current value to a given ``exponent`` until a maximum value is reached.
+    Increases timer value by raising the current value to a given ``exponent`` until a maximum value is reached.
 
     :param initial: The starting value to use.
     :param final: The value at which to stop increasing.

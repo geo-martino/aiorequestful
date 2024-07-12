@@ -28,13 +28,13 @@ Basic usage
 :py:class:`.CountTimer`
 -----------------------
 
-Provides an abstract implementation for managing a number of :py:class:`.Timer` increases specified
+Provides an abstract implementation for managing a number of :py:class:`.Timer` value increases specified
 by a given ``count`` value.
 
 :py:class:`.StepCountTimer`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Increases time value by a given ``step`` amount a distinct number of times.
+Increases timer value by a given ``step`` amount a distinct number of times.
 
 .. literalinclude:: scripts/timer.py
    :language: Python
@@ -44,7 +44,7 @@ Increases time value by a given ``step`` amount a distinct number of times.
 :py:class:`.GeometricCountTimer`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Increases time value by multiplying the current value by a given ``factor`` a distinct number of times.
+Increases timer value by multiplying the current value by a given ``factor`` a distinct number of times.
 
 .. literalinclude:: scripts/timer.py
    :language: Python
@@ -54,7 +54,7 @@ Increases time value by multiplying the current value by a given ``factor`` a di
 :py:class:`.PowerCountTimer`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Increases time value by raising the current value to a given ``exponent`` a distinct number of times.
+Increases timer value by raising the current value to a given ``exponent`` a distinct number of times.
 
 .. literalinclude:: scripts/timer.py
    :language: Python
@@ -64,12 +64,12 @@ Increases time value by raising the current value to a given ``exponent`` a dist
 :py:class:`.CeilingTimer`
 -------------------------
 
-Provides an abstract implementation for managing :py:class:`.Timer` up to a specified ``final`` value.
+Provides an abstract implementation for managing :py:class:`.Timer` value increases up to a specified ``final`` value.
 
 :py:class:`.StepCeilingTimer`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Increases time value by a given ``step`` amount until a maximum value is reached.
+Increases timer value by a given ``step`` amount until a maximum value is reached.
 
 .. literalinclude:: scripts/timer.py
    :language: Python
@@ -79,7 +79,7 @@ Increases time value by a given ``step`` amount until a maximum value is reached
 :py:class:`.GeometricCeilingTimer`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Increases time value by multiplying the current value by a given ``factor`` until a maximum value is reached.
+Increases timer value by multiplying the current value by a given ``factor`` until a maximum value is reached.
 
 .. literalinclude:: scripts/timer.py
    :language: Python
@@ -89,7 +89,7 @@ Increases time value by multiplying the current value by a given ``factor`` unti
 :py:class:`.PowerCeilingTimer`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Increases time value by raising the current value to a given ``exponent`` until a maximum value is reached.
+Increases timer value by raising the current value to a given ``exponent`` until a maximum value is reached.
 
 .. literalinclude:: scripts/timer.py
    :language: Python
