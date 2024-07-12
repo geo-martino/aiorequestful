@@ -188,7 +188,9 @@ print(result)
 ```
 
 However, this example will not cache anything as we have not set up repositories for the endpoints we require.
-See :ref:`guide-cache` for more info on settings up cache repositories.
+Check out the 
+[documentation on caching](https://geo-martino.github.io/aiorequestful/guides/cache.html#guide-cache) 
+for more info on settings up cache repositories.
 
 > [!NOTE]
 > We cannot dynamically assign a cache to a instance of `RequestHandler`.
