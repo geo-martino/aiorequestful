@@ -23,7 +23,7 @@ What's in this documentation
 * Reference documentation
 
 .. include:: guides/install.rst
-   :start-after: .. START
+   :start-after: :
 
 .. toctree::
    :maxdepth: 1
