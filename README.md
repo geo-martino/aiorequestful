@@ -25,7 +25,7 @@
 
 ## Contents
 * [Getting Started](#getting-started)
-  * [Sending a simple request](#sending-a-simple-request)
+  * [Sending simple requests](#sending-simple-requests)
   * [Handling the response payload](#handling-the-response-payload)
   * [Authorising with the service](#authorising-with-the-service)
   * [Caching responses](#caching-responses)
@@ -76,7 +76,7 @@ Each part listed above can be configured as required.
 Before we get to that though, let's start with a simple example.
 
 
-### Sending a simple request
+### Sending simple requests
 
 ```python
 import asyncio
@@ -102,6 +102,20 @@ result = asyncio.run(task)
 
 print(result)
 print(type(result).__name__)
+```
+
+And to send many requests, we simply do the following.
+
+```python
+async def send_get_requests(handler: RequestHandler, url: str | URL, count: int = 20) -> tuple[Any]:
+    async with handler:
+        payloads = await asyncio.gather(*[handler.get(url) for _ in range(count)])
+
+    return payloads
+
+results = asyncio.run(send_get_requests(request_handler, url=api_url, count=20))
+for result in results:
+    print(result)
 ```
 
 Here, we request some data from an open API that requires no authentication to access.

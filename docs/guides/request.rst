@@ -16,8 +16,8 @@ This object will handle, amongst other things, these core processes:
 Each part listed above can be configured as required.
 Before we get to that though, let's start with a simple example.
 
-Sending a simple request
-------------------------
+Sending simple requests
+-----------------------
 
 .. literalinclude:: scripts/request/simple.py
    :language: Python
