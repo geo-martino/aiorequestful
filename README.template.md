@@ -131,7 +131,7 @@ By doing so, we ensure that our `RequestHandler` only returns data in a format t
 The `JSONPayloadHandler` is set to fail if the data given to it is not valid JSON data.
 
 > [!NOTE]
-> For more info on payload handling, [read the docs](https://{program_owner_user}.github.io/{program_name_lower}/guides/response.payload.html#guide-payload).
+> For more info on payload handling, [read the docs](https://{program_owner_user}.github.io/{program_name_lower}/guides/response.payload.html).
 
 
 ### Authorising with the service
@@ -162,7 +162,7 @@ print(result)
 ```
 
 > [!NOTE]
-> For more info on authorising including other types of supported authorisation flows, [read the docs](https://{program_owner_user}.github.io/{program_name_lower}/guides/auth.html#guide-auth).
+> For more info on authorising including other types of supported authorisation flows, [read the docs](https://{program_owner_user}.github.io/{program_name_lower}/guides/auth.html).
 
 
 ### Caching responses
@@ -189,7 +189,7 @@ print(result)
 
 However, this example will not cache anything as we have not set up repositories for the endpoints we require.
 Check out the 
-[documentation on caching](https://{program_owner_user}.github.io/{program_name_lower}/guides/cache.html#guide-cache) 
+[documentation on caching](https://{program_owner_user}.github.io/{program_name_lower}/guides/cache.html) 
 for more info on setting up cache repositories.
 
 > [!NOTE]
@@ -197,7 +197,7 @@ for more info on setting up cache repositories.
 > Hence, we always need to supply the `ResponseCache` when instantiating the `RequestHandler`.
 
 > [!NOTE]
-> For more info on setting a successful cache and other supported cache backends, [read the docs](https://{program_owner_user}.github.io/{program_name_lower}/guides/cache.html#guide-cache).
+> For more info on setting a successful cache and other supported cache backends, [read the docs](https://{program_owner_user}.github.io/{program_name_lower}/guides/cache.html).
 
 
 ### Handling error responses
@@ -221,7 +221,7 @@ print(type(result).__name__)
 ```
 
 > [!NOTE]
-> For more info on `StatusHandler` and how they handle each response type, [read the docs](https://{program_owner_user}.github.io/{program_name_lower}/guides/response.status.html#guide-status).
+> For more info on `StatusHandler` and how they handle each response type, [read the docs](https://{program_owner_user}.github.io/{program_name_lower}/guides/response.status.html).
 
 
 ### Managing retries and backoff time
@@ -283,7 +283,7 @@ This timer is the same for each new request so any increase in time
 **does carry through to future requests**.
 
 > [!NOTE]
-> For more info on the available `Timer` objects, [read the docs](https://{program_owner_user}.github.io/{program_name_lower}/guides/timer.html#guide-timer).
+> For more info on the available `Timer` objects, [read the docs](https://{program_owner_user}.github.io/{program_name_lower}/guides/timer.html).
 
 
 ## Currently Supported
