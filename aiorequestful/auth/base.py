@@ -4,6 +4,7 @@ Base interface for implementations of all authoriser flows.
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Awaitable
+from typing import Generator, Any
 
 from aiorequestful.types import Headers
 
@@ -38,3 +39,6 @@ class Authoriser(ABC):
 
     def __call__(self) -> Awaitable[Headers]:
         return self.authorise()
+
+    def __await__(self) -> Generator[Any, None, Headers]:
+        return self.authorise().__await__()

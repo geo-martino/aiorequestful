@@ -1,4 +1,4 @@
-# PART 1
+# SINGLE
 
 import asyncio
 from typing import Any
@@ -26,7 +26,8 @@ print(result)
 print(type(result).__name__)
 
 
-# PART 2
+# END
+# MANY
 
 async def send_get_requests(handler: RequestHandler, url: str | URL, count: int = 20) -> tuple[Any]:
     async with handler:
@@ -37,3 +38,5 @@ async def send_get_requests(handler: RequestHandler, url: str | URL, count: int 
 results = asyncio.run(send_get_requests(request_handler, url=api_url, count=20))
 for result in results:
     print(result)
+
+# END

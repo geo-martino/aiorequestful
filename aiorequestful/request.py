@@ -210,7 +210,7 @@ class RequestHandler[A: Authoriser, P: Any]:
 
         headers = {}
         if self.authoriser is not None:
-            self.session.headers.update(await self.authoriser())
+            self.session.headers.update(await self.authoriser)
 
         return headers
 

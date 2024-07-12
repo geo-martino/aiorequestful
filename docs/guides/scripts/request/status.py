@@ -1,6 +1,6 @@
-from simple import *
+from docs.guides.scripts.request._base import *
 
-# PART 1
+# ASSIGNMENT
 
 from aiorequestful.response.status import ClientErrorStatusHandler, UnauthorisedStatusHandler, RateLimitStatusHandler
 
@@ -15,7 +15,8 @@ result = asyncio.run(task)
 print(result)
 print(type(result).__name__)
 
-# PART 2
+# END
+# INSTANTIATION
 
 request_handler = RequestHandler.create(response_handlers=response_handlers)
 
@@ -25,7 +26,8 @@ result = asyncio.run(task)
 print(result)
 print(type(result).__name__)
 
-# PART 3
+# END
+# REORDER
 
 response_handlers = [
     ClientErrorStatusHandler(), UnauthorisedStatusHandler(), RateLimitStatusHandler()
@@ -37,3 +39,5 @@ result = asyncio.run(task)
 
 print(result)
 print(type(result).__name__)
+
+# END

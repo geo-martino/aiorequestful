@@ -80,7 +80,7 @@ class TestUnauthorisedStatusHandler(StatusHandlerTester):
         assert not await handler(response_valid, session=session)
 
         assert await handler(response_valid, authoriser=authoriser, session=session)
-        assert session.headers == await authoriser()
+        assert session.headers == await authoriser
 
 
 class TestRateLimitStatusHandler(StatusHandlerTester):

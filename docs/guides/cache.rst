@@ -1,4 +1,4 @@
-.. _guide-cache:
+.. _cache-guide:
 
 Caching responses
 =================

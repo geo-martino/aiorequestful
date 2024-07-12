@@ -1,6 +1,6 @@
-from simple import *
+from docs.guides.scripts.request._base import *
 
-# PART 1
+# ASSIGNMENT
 
 from aiorequestful.response.payload import JSONPayloadHandler
 
@@ -13,7 +13,8 @@ result = asyncio.run(task)
 print(result)
 print(type(result).__name__)
 
-# PART 2
+# END
+# INSTANTIATION
 
 request_handler = RequestHandler.create(payload_handler=payload_handler)
 
@@ -22,3 +23,5 @@ result = asyncio.run(task)
 
 print(result)
 print(type(result).__name__)
+
+# END

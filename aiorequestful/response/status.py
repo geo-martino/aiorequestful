@@ -115,7 +115,7 @@ class UnauthorisedStatusHandler(StatusHandler):
             return False
 
         self._log(response=response, message="Re-authorising...")
-        headers = await authoriser()
+        headers = await authoriser
         session.headers.update(headers)
         return True
 

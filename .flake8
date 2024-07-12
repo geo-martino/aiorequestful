@@ -3,7 +3,8 @@ extend-exclude = .venv* jupyter/ notebooks/ test.py
 extend-ignore = E266
 per-file-ignores =
     **/__init__.py:F401
-    docs/*/scripts/*:E402,F401,F403,F405,F811
+    docs/*/scripts/*:E402,F401,F403,F405,F811,F841
     tests/**/test_*.py:F811
+    tests/test_docs.py:F401,F811
 max-line-length = 120
 max-complexity = 10

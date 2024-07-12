@@ -1,4 +1,4 @@
-.. _guide-payload:
+.. _payload-guide:
 
 Handling payload data
 =====================
@@ -10,10 +10,8 @@ Basic usage
 
 The :py:class:`.PayloadHandler` transforms data returned by a HTTP request to a usable python object.
 
-.. literalinclude:: scripts/response/payload.py
+.. literalinclude:: scripts/response/payload_core.py
    :language: Python
-   :start-after: # PART 0
-   :end-before: # PART 1
 
 These two methods should accept a variety of input types as below where T is the supported output type of
 the :py:class:`.PayloadHandler`.
@@ -23,10 +21,16 @@ the ``aiohttp`` package.
 .. literalinclude:: /../aiorequestful/response/payload.py
    :language: Python
    :pyobject: PayloadHandler.serialize
+   :dedent: 4
 
 .. literalinclude:: /../aiorequestful/response/payload.py
    :language: Python
    :pyobject: PayloadHandler.deserialize
+   :dedent: 4
+
+.. seealso::
+   This package implements a few common payload data types as shown below, though you may wish to
+   :ref:`extend this functionality <payload-custom>`.
 
 .. seealso::
    For more info on how to pass a :py:class:`.PayloadHandler` to the :py:class:`.RequestHandler`,
@@ -39,8 +43,8 @@ Converts payload data to ``str`` objects.
 
 .. literalinclude:: scripts/response/payload.py
    :language: Python
-   :start-after: # PART 1
-   :end-before: # PART 2
+   :start-after: # STRING
+   :end-before: # END
 
 :py:class:`.JSONPayloadHandler`
 -------------------------------
@@ -49,7 +53,10 @@ Converts payload data to ``dict`` objects.
 
 .. literalinclude:: scripts/response/payload.py
    :language: Python
-   :start-after: # PART 2
+   :start-after: # JSON
+   :end-before: # END
+
+.. _payload-custom:
 
 Writing a :py:class:`.PayloadHandler`
 -------------------------------------

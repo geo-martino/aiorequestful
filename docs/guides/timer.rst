@@ -1,4 +1,4 @@
-.. _guide-timer:
+.. _timer-guide:
 
 Timers
 ======
@@ -20,10 +20,12 @@ with info on how to implement your own.
 Basic usage
 -----------
 
-.. literalinclude:: scripts/timer.py
+.. literalinclude:: scripts/timer/core.py
    :language: Python
-   :start-after: # PART 0
-   :end-before: # PART 1
+
+.. seealso::
+   This package implements a few basic timing formulae as shown below, though you may wish to
+   :ref:`extend this functionality <timer-custom>`.
 
 :py:class:`.CountTimer`
 -----------------------
@@ -36,17 +38,17 @@ by a given ``count`` value.
 
 Increases timer value by a given ``step`` amount a distinct number of times.
 
-.. literalinclude:: scripts/timer.py
+.. literalinclude:: scripts/timer/timer.py
    :language: Python
    :start-after: # PART 1
-   :end-before: # PART 2
+   :end-before: # END
 
 :py:class:`.GeometricCountTimer`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Increases timer value by multiplying the current value by a given ``factor`` a distinct number of times.
 
-.. literalinclude:: scripts/timer.py
+.. literalinclude:: scripts/timer/timer.py
    :language: Python
    :start-after: # PART 2
    :end-before: # PART 3
@@ -56,7 +58,7 @@ Increases timer value by multiplying the current value by a given ``factor`` a d
 
 Increases timer value by raising the current value to a given ``exponent`` a distinct number of times.
 
-.. literalinclude:: scripts/timer.py
+.. literalinclude:: scripts/timer/timer.py
    :language: Python
    :start-after: # PART 3
    :end-before: # PART 4
@@ -71,7 +73,7 @@ Provides an abstract implementation for managing :py:class:`.Timer` value increa
 
 Increases timer value by a given ``step`` amount until a maximum value is reached.
 
-.. literalinclude:: scripts/timer.py
+.. literalinclude:: scripts/timer/timer.py
    :language: Python
    :start-after: # PART 4
    :end-before: # PART 5
@@ -81,7 +83,7 @@ Increases timer value by a given ``step`` amount until a maximum value is reache
 
 Increases timer value by multiplying the current value by a given ``factor`` until a maximum value is reached.
 
-.. literalinclude:: scripts/timer.py
+.. literalinclude:: scripts/timer/timer.py
    :language: Python
    :start-after: # PART 5
    :end-before: # PART 6
@@ -91,9 +93,11 @@ Increases timer value by multiplying the current value by a given ``factor`` unt
 
 Increases timer value by raising the current value to a given ``exponent`` until a maximum value is reached.
 
-.. literalinclude:: scripts/timer.py
+.. literalinclude:: scripts/timer/timer.py
    :language: Python
    :start-after: # PART 6
+
+.. _timer-custom:
 
 Writing a :py:class:`.Timer`
 ----------------------------

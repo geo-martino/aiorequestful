@@ -133,7 +133,7 @@ class TestClientCredentialsFlow(OAuth2Tester):
         authoriser.response._response = auth_response
         assert not authoriser.response.file_path
 
-        await authoriser.authorise()
+        await authoriser
 
         mock_request_token.assert_not_called()
         mock_tester.assert_called_once()
@@ -150,7 +150,7 @@ class TestClientCredentialsFlow(OAuth2Tester):
         assert not authoriser.response._response
         authoriser.response.file_path = response_file_path
 
-        await authoriser.authorise()
+        await authoriser
 
         mock_request_token.assert_not_called()
         mock_tester.assert_called_once()
@@ -178,7 +178,7 @@ class TestClientCredentialsFlow(OAuth2Tester):
         assert not authoriser.response._response
         authoriser.response.file_path = response_file_path
 
-        await authoriser.authorise()
+        await authoriser
 
         mock_request_token.assert_called_once()
         assert mock_tester.call_count == 2
@@ -200,7 +200,7 @@ class TestClientCredentialsFlow(OAuth2Tester):
             authoriser, attribute="tester", side_effect=tester, new_callable=AsyncMock
         )
 
-        await authoriser.authorise()
+        await authoriser
 
         mock_request_token.assert_called_once()
         assert mock_tester.call_count == 2
@@ -216,7 +216,7 @@ class TestClientCredentialsFlow(OAuth2Tester):
         mocker.patch.object(ClientCredentialsFlow, attribute="_request_token", return_value={})
 
         with pytest.raises(AuthoriserError, match="not generate or load"):
-            await authoriser.authorise()
+            await authoriser
 
     async def test_authorise_invalid_response(
             self,
@@ -230,7 +230,7 @@ class TestClientCredentialsFlow(OAuth2Tester):
         mocker.patch.object(authoriser, attribute="tester", side_effect=AsyncMock(return_value=False))
 
         with pytest.raises(AuthoriserError, match="still not valid"):
-            await authoriser.authorise()
+            await authoriser
 
 
 class TestAuthorisationCodeFlow(OAuth2Tester):
@@ -485,7 +485,7 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
         authoriser.response._response = auth_response
         assert not authoriser.response.file_path
 
-        await authoriser.authorise()
+        await authoriser
 
         mock_user_auth.assert_not_called()
         mock_request_token.assert_not_called()
@@ -504,7 +504,7 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
         assert not authoriser.response._response
         authoriser.response.file_path = response_file_path
 
-        await authoriser.authorise()
+        await authoriser
 
         mock_user_auth.assert_not_called()
         mock_request_token.assert_not_called()
@@ -537,7 +537,7 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
         assert not authoriser.response._response
         authoriser.response.file_path = response_file_path
 
-        await authoriser.authorise()
+        await authoriser
 
         mock_user_auth.assert_not_called()
         mock_request_token.assert_not_called()
@@ -555,7 +555,7 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
         assert not authoriser.response._response
         assert not authoriser.response.file_path
 
-        await authoriser.authorise()
+        await authoriser
 
         mock_user_auth.assert_called_once()
         mock_request_token.assert_called_once()
@@ -573,7 +573,7 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
         mocker.patch.object(AuthorisationCodeFlow, attribute="_request_token", return_value={})
 
         with pytest.raises(AuthoriserError, match="not generate or load"):
-            await authoriser.authorise()
+            await authoriser
 
     async def test_authorise_invalid_response(
             self,
@@ -590,7 +590,7 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
         )
 
         with pytest.raises(AuthoriserError, match="still not valid"):
-            await authoriser.authorise()
+            await authoriser
 
 
 class TestAuthorisationCodePKCEFlow(OAuth2Tester):

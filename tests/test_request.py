@@ -103,7 +103,7 @@ class TestRequestHandler:
         async with request_handler as handler:
             assert isinstance(handler.session, CachedSession)
 
-            for k, v in (await handler.authoriser.authorise()).items():
+            for k, v in (await handler.authoriser).items():
                 assert handler.session.headers.get(k) == v
 
             for repository in cache.values():

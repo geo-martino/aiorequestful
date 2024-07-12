@@ -1,6 +1,6 @@
-from simple import *
+from docs.guides.scripts.request._base import *
 
-# PART 1
+# ASSIGNMENT
 
 from aiorequestful.auth.basic import BasicAuthoriser
 
@@ -22,7 +22,8 @@ result = asyncio.run(task)
 
 print(result)
 
-# PART 2
+# END
+# INSTANTIATION
 
 request_handler = RequestHandler.create(authoriser=authoriser)
 
@@ -30,3 +31,5 @@ task = auth_and_send_get_request(request_handler, url=api_url)
 result = asyncio.run(task)
 
 print(result)
+
+# END

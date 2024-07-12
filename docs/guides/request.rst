@@ -1,4 +1,4 @@
-.. _guide-request:
+.. _request-guide:
 
 Sending requests
 ================
@@ -21,14 +21,15 @@ Sending simple requests
 
 .. literalinclude:: scripts/request/simple.py
    :language: Python
-   :start-after: # PART 1
-   :end-before: # PART 2
+   :start-after: # SINGLE
+   :end-before: # END
 
 And to send many requests, we simply do the following.
 
 .. literalinclude:: scripts/request/simple.py
    :language: Python
-   :start-after: # PART 2
+   :start-after: # MANY
+   :end-before: # END
 
 
 Here, we request some data from an open API that requires no authentication to access.
@@ -45,8 +46,8 @@ to the :py:class:`.RequestHandler` to retrieve the data type we require.
 
 .. literalinclude:: scripts/request/payload.py
    :language: Python
-   :start-after: # PART 1
-   :end-before: # PART 2
+   :start-after: # ASSIGNMENT
+   :end-before: # END
 
 By doing so, we ensure that our :py:class:`.RequestHandler` only returns data in a format that we expect.
 The :py:class:`.JSONPayloadHandler` is set to fail if the data given to it is not valid JSON data.
@@ -55,10 +56,11 @@ We may also assign this :py:class:`.PayloadHandler` when we create the :py:class
 
 .. literalinclude:: scripts/request/payload.py
    :language: Python
-   :start-after: # PART 2
+   :start-after: # INSTANTIATION
+   :end-before: # END
 
 .. seealso::
-   For more info on payload handling, see :ref:`guide-payload`.
+   For more info on payload handling, see :ref:`payload-guide`.
 
 .. _request-auth:
 
@@ -70,17 +72,18 @@ We can assign an :py:class:`.Authoriser` to the :py:class:`.RequestHandler` to h
 
 .. literalinclude:: scripts/request/auth.py
    :language: Python
-   :start-after: # PART 1
-   :end-before: # PART 2
+   :start-after: # ASSIGNMENT
+   :end-before: # END
 
 We may also assign this :py:class:`.Authoriser` when we create the :py:class:`.RequestHandler` too.
 
 .. literalinclude:: scripts/request/auth.py
    :language: Python
-   :start-after: # PART 2
+   :start-after: # INSTANTIATION
+   :end-before: # END
 
 .. seealso::
-   For more info on authorising including other types of supported authorisation flows, see :ref:`guide-auth`.
+   For more info on authorising including other types of supported authorisation flows, see :ref:`auth-guide`.
 
 .. _request-cache:
 
@@ -97,17 +100,18 @@ from the cache first before making an HTTP request to get the data.
 
 .. literalinclude:: scripts/request/cache.py
    :language: Python
-   :start-after: # PART 1
+   :start-after: # INSTANTIATION
+   :end-before: # END
 
 However, this example will not cache anything as we have not set up repositories for the endpoints we require.
-See :ref:`guide-cache` for more info on setting up cache repositories.
+See :ref:`cache-guide` for more info on setting up cache repositories.
 
 .. note::
    We cannot dynamically assign a cache to an instance of :py:class:`.RequestHandler`.
    Hence, we always need to supply the :py:class:`.ResponseCache` when instantiating the :py:class:`.RequestHandler`.
 
 .. seealso::
-   For more info on setting a successful cache and other supported cache backends, see :ref:`guide-cache`.
+   For more info on setting a successful cache and other supported cache backends, see :ref:`cache-guide`.
 
 .. _request-status:
 
@@ -119,15 +123,15 @@ We can have the :py:class:`.RequestHandler` handle these responses by assigning 
 
 .. literalinclude:: scripts/request/status.py
    :language: Python
-   :start-after: # PART 1
-   :end-before: # PART 2
+   :start-after: # ASSIGNMENT
+   :end-before: # END
 
 We may also assign these :py:class:`.StatusHandler` objects when we create the :py:class:`.RequestHandler` too.
 
 .. literalinclude:: scripts/request/status.py
    :language: Python
-   :start-after: # PART 2
-   :end-before: # PART 3
+   :start-after: # INSTANTIATION
+   :end-before: # END
 
 .. note::
    The order of the :py:class:`.StatusHandler` objects is important in determining which one has priority to
@@ -144,10 +148,11 @@ We may also assign these :py:class:`.StatusHandler` objects when we create the :
 
    .. literalinclude:: scripts/request/status.py
       :language: Python
-      :start-after: # PART 3
+      :start-after: # REORDER
+      :end-before: # END
 
 .. seealso::
-   For more info on :py:class:`.StatusHandler` and how they handle each response type, see :ref:`guide-status`.
+   For more info on :py:class:`.StatusHandler` and how they handle each response type, see :ref:`status-guide`.
 
 
 .. _request-timer:
@@ -172,8 +177,8 @@ we can set the following.
 
 .. literalinclude:: scripts/request/timer.py
    :language: Python
-   :start-after: # PART 1
-   :end-before: # PART 2
+   :start-after: # ASSIGNMENT - RETRY NO TIME
+   :end-before: # END
 
 We set the ``count`` value to ``3`` for 3 retries and all other values to ``0`` to ensure there is no wait time between
 these retries.
@@ -182,8 +187,8 @@ Should we wish to add some time between each retry, we can do the following.
 
 .. literalinclude:: scripts/request/timer.py
    :language: Python
-   :start-after: # PART 2
-   :end-before: # PART 3
+   :start-after: # ASSIGNMENT - RETRY WITH TIME
+   :end-before: # END
 
 This will now add 0.2 seconds between each unsuccessful request, waiting 0.6 seconds before the final retry for example.
 
@@ -199,8 +204,8 @@ of requests at once.
 
 .. literalinclude:: scripts/request/timer.py
    :language: Python
-   :start-after: # PART 3
-   :end-before: # PART 4
+   :start-after: # ASSIGNMENT - WAIT
+   :end-before: # END
 
 This timer will increase by 0.1 seconds each time it is increased up to a maximum of 1 second.
 
@@ -219,7 +224,8 @@ As usual, we may also assign these :py:class:`.Timer` objects when we create the
 
 .. literalinclude:: scripts/request/timer.py
    :language: Python
-   :start-after: # PART 4
+   :start-after: # INSTANTIATION
+   :end-before: # END
 
 .. seealso::
-   For more info on the available :py:class:`.Timer` objects, see :ref:`guide-timer`.
+   For more info on the available :py:class:`.Timer` objects, see :ref:`timer-guide`.

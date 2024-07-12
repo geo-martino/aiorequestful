@@ -1,21 +1,3 @@
-# PART 0
-
-from aiorequestful.timer import Timer
-
-timer = Timer()
-
-timer.increase()  # increase the value
-timer.wait()  # wait for the number of seconds specified by the timer's current value synchronously
-
-
-async def wait() -> None:
-    await timer  # as above, but wait asynchronously
-
-value_int = int(timer)  # get the current value as an int
-value_float = float(timer)  # get the current value as a float
-
-timer.reset()  # reset the timer back to its initial settings
-
 # PART 1
 
 from aiorequestful.timer import StepCountTimer
@@ -25,6 +7,8 @@ timer.increase()  # value = 0.2
 timer.increase()  # value = 0.4
 timer.increase()  # value = 0.6
 timer.increase()  # value = 0.6 (max count of 3 reached)
+
+print(float(timer))
 
 # PART 2
 
@@ -36,6 +20,8 @@ timer.increase()  # value = 8
 timer.increase()  # value = 16
 timer.increase()  # value = 16 (max count of 3 reached)
 
+print(float(timer))
+
 # PART 3
 
 from aiorequestful.timer import PowerCountTimer
@@ -45,6 +31,8 @@ timer.increase()  # value = 4
 timer.increase()  # value = 16
 timer.increase()  # value = 256
 timer.increase()  # value = 256 (max count of 3 reached)
+
+print(float(timer))
 
 # PART 4
 
@@ -56,6 +44,8 @@ timer.increase()  # value = 0.4
 timer.increase()  # value = 0.5 (max value reached)
 timer.increase()  # value = 0.5
 
+print(float(timer))
+
 # PART 5
 
 from aiorequestful.timer import GeometricCeilingTimer
@@ -66,6 +56,8 @@ timer.increase()  # value = 8
 timer.increase()  # value = 10 (max value reached)
 timer.increase()  # value = 10
 
+print(float(timer))
+
 # PART 6
 
 from aiorequestful.timer import PowerCeilingTimer
@@ -75,3 +67,5 @@ timer.increase()  # value = 4
 timer.increase()  # value = 16
 timer.increase()  # value = 60 (max value reached)
 timer.increase()  # value = 60
+
+print(float(timer))

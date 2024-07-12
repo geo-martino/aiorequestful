@@ -1,4 +1,4 @@
-.. _guide-status:
+.. _status-guide:
 
 Handling error responses
 ========================
@@ -21,6 +21,10 @@ Each :py:class:`.StatusHandler` should be built to accept the args and kwargs as
    :language: Python
    :pyobject: RequestHandler._handle_response
 
+The status handler will return ``True`` for a handled response, and ``False`` if it could not handle the response.
+It will raise a :py:class:`.StatusHandlerError` if the status code of the response does not match the status code
+of the response.
+
 .. seealso::
    For more info on how to pass :py:class:`.StatusHandler` objects to the :py:class:`.RequestHandler`,
    see :ref:`request-status`.
@@ -30,6 +34,9 @@ Supported status handlers
 
 The following is a list of each supports status handler with excerpts from their source code showing
 the supported status codes and the handle logic they implement.
+
+.. seealso::
+   You may wish to :ref:`extend this functionality <status-custom>`.
 
 :py:class:`.ClientErrorStatusHandler`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -63,6 +70,8 @@ the supported status codes and the handle logic they implement.
    .. literalinclude:: /../aiorequestful/response/status.py
          :language: Python
          :pyobject: RateLimitStatusHandler.handle
+
+.. _status-custom:
 
 Writing a :py:class:`.StatusHandler`
 ------------------------------------

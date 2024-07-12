@@ -1,6 +1,6 @@
-from simple import *
+from docs.guides.scripts.request._base import *
 
-# PART 1
+# INSTANTIATION
 
 from aiorequestful.cache.backend import SQLiteCache
 
@@ -11,3 +11,5 @@ task = send_get_request(request_handler, url=api_url)
 result = asyncio.run(task)
 
 print(result)
+
+# END
