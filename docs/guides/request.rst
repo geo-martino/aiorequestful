@@ -21,6 +21,15 @@ Sending a simple request
 
 .. literalinclude:: scripts/request/simple.py
    :language: Python
+   :start-after: # PART 1
+   :end-before: # PART 2
+
+And to send many requests, we simply do the following.
+
+.. literalinclude:: scripts/request/simple.py
+   :language: Python
+   :start-after: # PART 2
+
 
 Here, we request some data from an open API that requires no authentication to access.
 Notice how the data type of the object we retrieve is a string, but we can see from the print

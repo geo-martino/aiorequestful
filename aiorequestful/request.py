@@ -191,8 +191,9 @@ class RequestHandler[A: Authoriser, P: Any]:
         return self
 
     async def __aexit__(self, __exc_type, __exc_value, __traceback) -> None:
-        await self.session.__aexit__(__exc_type, __exc_value, __traceback)
-        self._session = None
+        if self._session is not None:
+            await self._session.__aexit__(__exc_type, __exc_value, __traceback)
+            self._session = None
 
         self._retry_logged = False
 
