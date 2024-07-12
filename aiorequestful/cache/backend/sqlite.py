@@ -257,7 +257,7 @@ class SQLiteCache(ResponseCache[SQLiteTable]):
         return cls.connect_with_path(path=value, **kwargs)
 
     @classmethod
-    def connect_with_path(cls, path: os.PathLike, **kwargs) -> Self:
+    def connect_with_path(cls, path: str | Path, **kwargs) -> Self:
         """Connect with an SQLite DB at the given ``path`` and return an instantiated :py:class:`SQLiteResponseCache`"""
         path = cls._get_sqlite_path(Path(path))
         os.makedirs(path.parent, exist_ok=True)

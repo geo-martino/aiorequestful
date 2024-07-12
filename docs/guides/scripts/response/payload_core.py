@@ -1,3 +1,5 @@
+# BASIC
+
 import asyncio
 from typing import Any
 
@@ -9,3 +11,5 @@ async def handle(handler: PayloadHandler, payload: Any) -> None:
     print(await handler.deserialize(payload))  # convert the payload data to the required object type
 
 asyncio.run(handle(handler=PayloadHandler(), payload='{"key": "value"}'))
+
+# END

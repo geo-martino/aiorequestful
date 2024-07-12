@@ -1,3 +1,5 @@
+# BASIC
+
 from aiorequestful.timer import Timer
 
 timer = Timer()
@@ -13,3 +15,5 @@ value_int = int(timer)  # get the current value as an int
 value_float = float(timer)  # get the current value as a float
 
 timer.reset()  # reset the timer back to its initial settings
+
+# END

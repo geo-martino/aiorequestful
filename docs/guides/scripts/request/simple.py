@@ -40,3 +40,15 @@ for result in results:
     print(result)
 
 # END
+# INIT
+
+import aiohttp
+
+
+def connector() -> aiohttp.ClientSession:
+    return aiohttp.ClientSession()
+
+
+request_handler = RequestHandler(connector=connector)
+
+# END

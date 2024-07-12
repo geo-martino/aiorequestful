@@ -3,6 +3,7 @@ Authoriser specific utilities which can be used to build implementations of auth
 """
 import json
 import logging
+import os
 import socket
 from collections.abc import MutableMapping, Generator, Coroutine, Callable, Awaitable, Mapping
 from contextlib import contextmanager, asynccontextmanager
@@ -240,6 +241,8 @@ class AuthResponse(MutableMapping[str, Any]):
         """Save the stored response to the stored file path."""
         if not self.file_path or not self:
             return
+
+        os.makedirs(self.file_path.parent, exist_ok=True)
 
         self.logger.debug(f"Saving authorisation code response: {self.sanitised}")
         with open(self.file_path, "w") as file:

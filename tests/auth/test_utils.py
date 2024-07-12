@@ -227,7 +227,7 @@ class TestAuthResponseHandler:
         assert not response
 
         # does nothing when no response given
-        file_path = tmp_path.joinpath("token").with_suffix(".json")
+        file_path = tmp_path.joinpath("path").joinpath("to").joinpath("token").with_suffix(".json")
         response.file_path = file_path
         assert not response
         response.save_response_to_file()

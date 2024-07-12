@@ -1,4 +1,4 @@
-# PART 1
+# StepCountTimer
 
 from aiorequestful.timer import StepCountTimer
 
@@ -10,7 +10,8 @@ timer.increase()  # value = 0.6 (max count of 3 reached)
 
 print(float(timer))
 
-# PART 2
+# END
+# GeometricCountTimer
 
 from aiorequestful.timer import GeometricCountTimer
 
@@ -22,7 +23,8 @@ timer.increase()  # value = 16 (max count of 3 reached)
 
 print(float(timer))
 
-# PART 3
+# END
+# PowerCountTimer
 
 from aiorequestful.timer import PowerCountTimer
 
@@ -34,7 +36,8 @@ timer.increase()  # value = 256 (max count of 3 reached)
 
 print(float(timer))
 
-# PART 4
+# END
+# StepCeilingTimer
 
 from aiorequestful.timer import StepCeilingTimer
 
@@ -46,7 +49,8 @@ timer.increase()  # value = 0.5
 
 print(float(timer))
 
-# PART 5
+# END
+# GeometricCeilingTimer
 
 from aiorequestful.timer import GeometricCeilingTimer
 
@@ -58,7 +62,8 @@ timer.increase()  # value = 10
 
 print(float(timer))
 
-# PART 6
+# END
+# PowerCeilingTimer
 
 from aiorequestful.timer import PowerCeilingTimer
 
@@ -69,3 +74,5 @@ timer.increase()  # value = 60 (max value reached)
 timer.increase()  # value = 60
 
 print(float(timer))
+
+# END

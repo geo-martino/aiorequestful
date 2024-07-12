@@ -59,7 +59,7 @@ class ResponseRepositorySettings[V](metaclass=ABCMeta):
         raise NotImplementedError
 
 
-class ResponseRepository[K, V](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
+class ResponseRepository[K: tuple, V: Any](AsyncIterable[tuple[K, V]], metaclass=ABCMeta):
     """
     Represents a repository in the backend cache, providing a dict-like interface
     for interacting with this repository.
@@ -277,7 +277,7 @@ class ResponseCache[R: ResponseRepository](MutableMapping[str, R], metaclass=ABC
     def __init__(
             self,
             cache_name: str,
-            repository_getter: Callable[[Self, URLInput], R] = None,
+            repository_getter: Callable[[Self, URLInput], R | None] = None,
             expire: timedelta | relativedelta = DEFAULT_EXPIRE,
     ):
         super().__init__()

@@ -3,10 +3,11 @@
 Handling error responses
 ========================
 
-This package provides tools to handle error responses in such a way that future requests
+The :py:mod:`.response.status` module provides tools to handle error responses in such a way that future requests
 can be made successfully seamlessly.
 
 These objects are designed to be used exclusively with the :py:class:`.RequestHandler`.
+
 
 Basic usage
 -----------
@@ -20,6 +21,7 @@ Each :py:class:`.StatusHandler` should be built to accept the args and kwargs as
 .. literalinclude:: /../aiorequestful/request.py
    :language: Python
    :pyobject: RequestHandler._handle_response
+   :dedent: 4
 
 The status handler will return ``True`` for a handled response, and ``False`` if it could not handle the response.
 It will raise a :py:class:`.StatusHandlerError` if the status code of the response does not match the status code
@@ -29,11 +31,12 @@ of the response.
    For more info on how to pass :py:class:`.StatusHandler` objects to the :py:class:`.RequestHandler`,
    see :ref:`request-status`.
 
+
 Supported status handlers
 -------------------------
 
-The following is a list of each supports status handler with excerpts from their source code showing
-the supported status codes and the handle logic they implement.
+The following is a list of each implemented status handler included in this module with excerpts from their
+source code showing the supported status codes and the :py:meth:`.StatusHandler.handle` logic they implement.
 
 .. seealso::
    You may wish to :ref:`extend this functionality <status-custom>`.
@@ -41,42 +44,51 @@ the supported status codes and the handle logic they implement.
 :py:class:`.ClientErrorStatusHandler`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   .. literalinclude:: /../aiorequestful/response/status.py
-         :language: Python
-         :pyobject: ClientErrorStatusHandler.status_codes
+.. literalinclude:: /../aiorequestful/response/status.py
+      :language: Python
+      :pyobject: ClientErrorStatusHandler.status_codes
+      :dedent: 4
 
-   .. literalinclude:: /../aiorequestful/response/status.py
-         :language: Python
-         :pyobject: ClientErrorStatusHandler.handle
+.. literalinclude:: /../aiorequestful/response/status.py
+      :language: Python
+      :pyobject: ClientErrorStatusHandler.handle
+      :dedent: 4
 
 :py:class:`.UnauthorisedStatusHandler`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   .. literalinclude:: /../aiorequestful/response/status.py
-         :language: Python
-         :pyobject: UnauthorisedStatusHandler.status_codes
+.. literalinclude:: /../aiorequestful/response/status.py
+      :language: Python
+      :pyobject: UnauthorisedStatusHandler.status_codes
+      :dedent: 4
 
-   .. literalinclude:: /../aiorequestful/response/status.py
-         :language: Python
-         :pyobject: UnauthorisedStatusHandler.handle
+.. literalinclude:: /../aiorequestful/response/status.py
+      :language: Python
+      :pyobject: UnauthorisedStatusHandler.handle
+      :dedent: 4
+
+.. _status-ratelimit:
 
 :py:class:`.RateLimitStatusHandler`
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-   .. literalinclude:: /../aiorequestful/response/status.py
-         :language: Python
-         :pyobject: RateLimitStatusHandler.status_codes
+.. literalinclude:: /../aiorequestful/response/status.py
+      :language: Python
+      :pyobject: RateLimitStatusHandler.status_codes
+      :dedent: 4
 
-   .. literalinclude:: /../aiorequestful/response/status.py
-         :language: Python
-         :pyobject: RateLimitStatusHandler.handle
+.. literalinclude:: /../aiorequestful/response/status.py
+      :language: Python
+      :pyobject: RateLimitStatusHandler.handle
+      :dedent: 4
+
 
 .. _status-custom:
 
 Writing a :py:class:`.StatusHandler`
 ------------------------------------
 
-To implement a :py:class:`.StatusHandler`, you will need to implement the abstract methods as below.
+To implement a :py:class:`.StatusHandler`, you will need to implement the abstract methods as shown below.
 
 .. literalinclude:: /../aiorequestful/response/status.py
    :language: Python

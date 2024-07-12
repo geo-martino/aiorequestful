@@ -3,7 +3,7 @@
 Sending requests
 ================
 
-Ultimately, the core part of this whole package is the :py:class:`.RequestHandler`.
+Ultimately, the core part of this whole package is the :py:class:`.RequestHandler` found in the :py:mod:`.request` module.
 This object will handle, amongst other things, these core processes:
 
 * creating sessions
@@ -16,6 +16,7 @@ This object will handle, amongst other things, these core processes:
 Each part listed above can be configured as required.
 Before we get to that though, let's start with a simple example.
 
+
 Sending simple requests
 -----------------------
 
@@ -24,17 +25,29 @@ Sending simple requests
    :start-after: # SINGLE
    :end-before: # END
 
-And to send many requests, we simply do the following.
+To send many requests, we simply do the following:
 
 .. literalinclude:: scripts/request/simple.py
    :language: Python
    :start-after: # MANY
    :end-before: # END
 
+.. note::
+   Here we use the :py:meth:`.RequestHandler.create` class method to create the object.
+   We can create the object directly, by providing a ``connector`` to a
+   `ClientSession <https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession>`_ as seen below,
+   however it is preferable to use the :py:meth:`.RequestHandler.create` class method to automatically generate the ``connector``
+   from the given kwargs.
 
-Here, we request some data from an open API that requires no authentication to access.
+   .. literalinclude:: scripts/request/simple.py
+      :language: Python
+      :start-after: # INIT
+      :end-before: # END
+
+Here, we requested some data from an open API that requires no authentication to access.
 Notice how the data type of the object we retrieve is a string, but we can see from the print
 that this is meant to be JSON data.
+
 
 .. _request-payload:
 
@@ -59,8 +72,21 @@ We may also assign this :py:class:`.PayloadHandler` when we create the :py:class
    :start-after: # INSTANTIATION
    :end-before: # END
 
+Additionally, if we have a :py:class:`.ResponseCache` set up on the :py:class:`.RequestHandler`,
+the :py:class:`.PayloadHandler` for each :py:class:`.ResponseRepository` will also be updated as shown below.
+
+.. literalinclude:: /../aiorequestful/request.py
+   :language: Python
+   :pyobject: RequestHandler.payload_handler
+   :dedent: 4
+
+.. seealso::
+   For more info on setting up on how a :py:class:`.ResponseRepository` uses the :py:class:`.PayloadHandler`,
+   see :ref:`cache-guide`.
+
 .. seealso::
    For more info on payload handling, see :ref:`payload-guide`.
+
 
 .. _request-auth:
 
@@ -84,6 +110,7 @@ We may also assign this :py:class:`.Authoriser` when we create the :py:class:`.R
 
 .. seealso::
    For more info on authorising including other types of supported authorisation flows, see :ref:`auth-guide`.
+
 
 .. _request-cache:
 
@@ -112,6 +139,7 @@ See :ref:`cache-guide` for more info on setting up cache repositories.
 
 .. seealso::
    For more info on setting a successful cache and other supported cache backends, see :ref:`cache-guide`.
+
 
 .. _request-status:
 
@@ -173,7 +201,7 @@ Retries and unsuccessful backoff time
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 As an example, if we want to simply retry the same request 3 times without any backoff time in-between each request,
-we can set the following.
+we can set the following:
 
 .. literalinclude:: scripts/request/timer.py
    :language: Python
@@ -183,14 +211,14 @@ we can set the following.
 We set the ``count`` value to ``3`` for 3 retries and all other values to ``0`` to ensure there is no wait time between
 these retries.
 
-Should we wish to add some time between each retry, we can do the following.
+Should we wish to add some time between each retry, we can do the following:
 
 .. literalinclude:: scripts/request/timer.py
    :language: Python
    :start-after: # ASSIGNMENT - RETRY WITH TIME
    :end-before: # END
 
-This will now add 0.2 seconds between each unsuccessful request, waiting 0.6 seconds before the final retry for example.
+This will now add 0.2 seconds between each unsuccessful request, waiting 0.6 seconds before the final retry.
 
 This timer is generated as new for each new request so any increase in time
 **does not carry through to future requests**.
@@ -211,7 +239,7 @@ This timer will increase by 0.1 seconds each time it is increased up to a maximu
 
 .. warning::
    The :py:class:`.RequestHandler` is not responsible for handling when this timer is increased.
-   A :py:class:`.StatusHandler` should be used to increase this timer such as the :py:class:`.RateLimitStatusHandler`
+   A :py:class:`.StatusHandler` should be used to increase this timer such as the :ref:`status-ratelimit`
    which will increase this timer every time a 'Too Many Requests' error is returned.
 
 This timer is the same for each new request so any increase in time

@@ -8,3 +8,6 @@ def test_guides():
     from docs.guides.scripts.request import simple, auth, cache, payload, status, timer
     from docs.guides.scripts.response import payload
     from docs.guides.scripts.timer import timer
+
+    # from docs.guides.scripts.auth import basic, oauth2
+    # from docs.guides.scripts.cache.backend import base, sqlite

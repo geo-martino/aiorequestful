@@ -144,8 +144,8 @@ class ClientCredentialsFlow(OAuth2Authoriser):
         )
 
         if hasattr(obj.token_request, "params"):
-            obj.token_request.params.pop("client_id")
-            obj.token_request.params.pop("client_secret")
+            obj.token_request.params.pop("client_id", None)
+            obj.token_request.params.pop("client_secret", None)
         obj.token_request.headers = credentials_headers
 
         return obj
@@ -300,13 +300,13 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
         )
 
         if hasattr(obj.token_request, "params"):
-            obj.token_request.params.pop("client_id")
-            obj.token_request.params.pop("client_secret")
+            obj.token_request.params.pop("client_id", None)
+            obj.token_request.params.pop("client_secret", None)
         obj.token_request.headers = credentials_headers
 
         if obj.refresh_request:
             if hasattr(obj.refresh_request, "params"):
-                obj.refresh_request.params.pop("client_id")
+                obj.refresh_request.params.pop("client_id", None)
             obj.refresh_request.headers = credentials_headers
 
         return obj
