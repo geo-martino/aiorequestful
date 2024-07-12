@@ -134,6 +134,8 @@ We may also assign these :py:class:`.StatusHandler` objects when we create the :
    For more info on :py:class:`.StatusHandler` and how they handle each response type, see :ref:`guide-status`.
 
 
+.. _request-timer:
+
 Managing retries and backoff time
 ---------------------------------
 

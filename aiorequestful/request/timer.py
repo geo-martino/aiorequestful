@@ -261,7 +261,7 @@ class GeometricCountTimer(CountTimer):
 
 class PowerCountTimer(CountTimer):
     """
-    Increases time value by raising the current value to a given power a distinct number of times.
+    Increases time value by raising the current value to a given ``exponent`` a distinct number of times.
 
     :param initial: The starting value to use.
     :param count: The amount of times to increase the value.
@@ -450,7 +450,7 @@ class GeometricCeilingTimer(CeilingTimer):
 
 class PowerCeilingTimer(CeilingTimer):
     """
-    Increases time value by raising the current value to a given power until a maximum value is reached.
+    Increases time value by raising the current value to a given ``exponent`` until a maximum value is reached.
 
     :param initial: The starting value to use.
     :param final: The value at which to stop increasing.
