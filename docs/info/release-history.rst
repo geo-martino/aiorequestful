@@ -32,6 +32,18 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
 
+0.6.1
+=====
+
+Added
+-----
+* Raise an exception on :py:meth:`.RequestHandler.request` when called and the session is closed.
+
+Documentation
+-------------
+* Expand README to complete all placeholder sections
+
+
 0.6.0
 =====
 
