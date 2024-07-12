@@ -3,12 +3,12 @@
 Handling payload data
 =====================
 
-This package provides a basic interface for handling payload data returned by a HTTP request.
-
-The :py:class:`.PayloadHandler` transforms data returned by a HTTP request to a usable python object.
+This package provides a basic interface and implementations for handling payload data returned by a HTTP request.
 
 Basic usage
 -----------
+
+The :py:class:`.PayloadHandler` transforms data returned by a HTTP request to a usable python object.
 
 .. literalinclude:: scripts/response/payload.py
    :language: Python
@@ -17,7 +17,7 @@ Basic usage
 
 These two methods should accept a variety of input types as below where T is the supported output type of
 the :py:class:`.PayloadHandler`.
-Crucially, the :py:meth:`.PayloadHandler.deserialize` should accept the ``ClientResponse`` as returned by
+Crucially, :py:meth:`.PayloadHandler.deserialize` should accept the ``ClientResponse`` as returned by
 the ``aiohttp`` package.
 
 .. literalinclude:: /../aiorequestful/response/payload.py

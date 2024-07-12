@@ -3,7 +3,7 @@
 Handling error responses
 ========================
 
-The package provides tools to handle error responses in such a way that future requests
+This package provides tools to handle error responses in such a way that future requests
 can be made successfully seamlessly.
 
 These objects are designed to be used exclusively with the :py:class:`.RequestHandler`.
@@ -14,7 +14,7 @@ Basic usage
 A :py:class:`.StatusHandler` should not be used directly to handle responses. The aim of a :py:class:`.StatusHandler`
 is to be passed to the :py:class:`.RequestHandler` to handle responses there.
 
-Each :py:class:`.StatusHandler` should be built to accept the method of call as per the
+Each :py:class:`.StatusHandler` should be built to accept the args and kwargs as per the
 :py:class:`.RequestHandler` method quoted below.
 
 .. literalinclude:: /../aiorequestful/request.py
@@ -31,7 +31,8 @@ Supported status handlers
 The following is a list of each supports status handler with excerpts from their source code showing
 the supported status codes and the handle logic they implement.
 
-* :py:class:`.ClientErrorStatusHandler`:
+:py:class:`.ClientErrorStatusHandler`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    .. literalinclude:: /../aiorequestful/response/status.py
          :language: Python
@@ -41,7 +42,8 @@ the supported status codes and the handle logic they implement.
          :language: Python
          :pyobject: ClientErrorStatusHandler.handle
 
-* :py:class:`.UnauthorisedStatusHandler`:
+:py:class:`.UnauthorisedStatusHandler`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    .. literalinclude:: /../aiorequestful/response/status.py
          :language: Python
@@ -51,7 +53,8 @@ the supported status codes and the handle logic they implement.
          :language: Python
          :pyobject: UnauthorisedStatusHandler.handle
 
-* :py:class:`.RateLimitStatusHandler`:
+:py:class:`.RateLimitStatusHandler`
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
    .. literalinclude:: /../aiorequestful/response/status.py
          :language: Python

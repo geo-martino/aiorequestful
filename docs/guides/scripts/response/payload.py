@@ -7,8 +7,8 @@ from aiorequestful.response.payload import PayloadHandler
 
 
 async def handle(handler: PayloadHandler, payload: Any) -> None:
-    await handler.serialize(payload)  # convert the payload data to a string
-    await handler.deserialize(payload)  # convert the payload data to the required object type
+    print(await handler.serialize(payload))  # convert the payload data to a string
+    print(await handler.deserialize(payload))  # convert the payload data to the required object type
 
 asyncio.run(handle(handler=PayloadHandler(), payload='{"key": "value"}'))
 
@@ -21,8 +21,8 @@ payload_handler = StringPayloadHandler()
 
 
 async def handle(handler: PayloadHandler, payload: Any) -> None:
-    await handler.serialize(payload)  # convert the payload data to a string
-    await handler.deserialize(payload)  # convert the payload data to a string
+    print(await handler.serialize(payload))  # convert the payload data to a string
+    print(await handler.deserialize(payload))  # convert the payload data to a string
 
 asyncio.run(handle(handler=payload_handler, payload=payload_data))
 
@@ -35,7 +35,7 @@ payload_handler = JSONPayloadHandler()
 
 
 async def handle(handler: PayloadHandler, payload: Any) -> None:
-    await handler.serialize(payload)  # convert the payload data to a string
-    await handler.deserialize(payload)  # convert the payload data to a dict
+    print(await handler.serialize(payload))  # convert the payload data to a string
+    print(await handler.deserialize(payload))  # convert the payload data to a dict
 
 asyncio.run(handle(handler=payload_handler, payload=payload_data))
