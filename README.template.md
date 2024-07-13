@@ -60,8 +60,6 @@ For the current list of optional dependency groups, [read the docs](https://{pro
 These quick guides will help you get set up and going with {program_name} in just a few minutes.
 For more detailed guides, check out the [documentation](https://{program_owner_user}.github.io/{program_name_lower}/).
 
-### Sending requests
-
 Ultimately, the core part of this whole package is the `RequestHandler`.
 This object will handle, amongst other things, these core processes:
 
