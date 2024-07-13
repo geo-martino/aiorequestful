@@ -60,8 +60,6 @@ For the current list of optional dependency groups, [read the docs](https://geo-
 These quick guides will help you get set up and going with aiorequestful in just a few minutes.
 For more detailed guides, check out the [documentation](https://geo-martino.github.io/aiorequestful/).
 
-### Sending requests
-
 Ultimately, the core part of this whole package is the `RequestHandler`.
 This object will handle, amongst other things, these core processes:
 
