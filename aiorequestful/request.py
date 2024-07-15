@@ -17,7 +17,6 @@ from typing import Any, Self, Unpack
 from urllib.parse import unquote
 
 import aiohttp
-from aiohttp import ClientResponse
 from yarl import URL
 
 from aiorequestful._utils import format_url_log
@@ -29,7 +28,7 @@ from aiorequestful.response.payload import StringPayloadHandler, PayloadHandler
 from aiorequestful.response.status import StatusHandler, ClientErrorStatusHandler, UnauthorisedStatusHandler, \
     RateLimitStatusHandler
 from aiorequestful.timer import Timer
-from aiorequestful.types import JSON, URLInput, Headers, MethodInput, RequestKwargs
+from aiorequestful.types import URLInput, Headers, MethodInput, RequestKwargs
 
 _DEFAULT_RESPONSE_HANDLERS = [
     UnauthorisedStatusHandler(), RateLimitStatusHandler(), ClientErrorStatusHandler()
@@ -334,7 +333,7 @@ class RequestHandler[A: Authoriser, P: Any]:
             ]
         )
 
-    async def _handle_response(self, response: ClientResponse, retry_timer: Timer | None = None) -> bool:
+    async def _handle_response(self, response: aiohttp.ClientResponse, retry_timer: Timer | None = None) -> bool:
         if response.status not in self.response_handlers:
             return False
 
@@ -367,38 +366,38 @@ class RequestHandler[A: Authoriser, P: Any]:
         await timer
         timer.increase()
 
-    async def get(self, url: URLInput, **kwargs) -> JSON:
+    async def get(self, url: URLInput, **kwargs) -> P:
         """Sends a GET request."""
         kwargs.pop("method", None)
         return await self.request("get", url=url, **kwargs)
 
-    async def post(self, url: URLInput, **kwargs) -> JSON:
+    async def post(self, url: URLInput, **kwargs) -> P:
         """Sends a POST request."""
         kwargs.pop("method", None)
         return await self.request("post", url=url, **kwargs)
 
-    async def put(self, url: URLInput, **kwargs) -> JSON:
+    async def put(self, url: URLInput, **kwargs) -> P:
         """Sends a PUT request."""
         kwargs.pop("method", None)
         return await self.request("put", url=url, **kwargs)
 
-    async def delete(self, url: URLInput, **kwargs) -> JSON:
+    async def delete(self, url: URLInput, **kwargs) -> P:
         """Sends a DELETE request."""
         kwargs.pop("method", None)
         return await self.request("delete", url, **kwargs)
 
-    async def options(self, url: URLInput, **kwargs) -> JSON:
+    async def options(self, url: URLInput, **kwargs) -> P:
         """Sends an OPTIONS request."""
         kwargs.pop("method", None)
         return await self.request("options", url=url, **kwargs)
 
-    async def head(self, url: URLInput, **kwargs) -> JSON:
+    async def head(self, url: URLInput, **kwargs) -> P:
         """Sends a HEAD request."""
         kwargs.pop("method", None)
         kwargs.setdefault("allow_redirects", False)
         return await self.request("head", url=url, **kwargs)
 
-    async def patch(self, url: URLInput, **kwargs) -> JSON:
+    async def patch(self, url: URLInput, **kwargs) -> P:
         """Sends a PATCH request."""
         kwargs.pop("method", None)
         return await self.request("patch", url=url, **kwargs)
