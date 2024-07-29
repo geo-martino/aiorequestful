@@ -54,7 +54,7 @@ test = [
 ]
 docs = [
     "aiorequestful[build]",
-    "sphinx~=7.3",
+    "sphinx>=7.3,<9.0",
     "renku_sphinx_theme",
     "graphviz~=0.20",
     "sphinx-autodoc-typehints~=2.2",
