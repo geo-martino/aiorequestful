@@ -31,6 +31,14 @@ Release History
 The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
+1.0.2
+=====
+
+Changed
+-------
+* Update upstream dependency versions
+
+
 1.0.1
 =====
 
