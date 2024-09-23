@@ -50,7 +50,7 @@ test = [
     "pytest-mock~=3.14",
     "aioresponses~=0.7",
     "pyyaml~=6.0",
-    "Faker>=26,<29",
+    "Faker>=26,<30",
 ]
 docs = [
     "aiorequestful[build]",
