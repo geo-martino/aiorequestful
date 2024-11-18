@@ -4,6 +4,7 @@ Generic utility functions and classes which can be used throughout the entire pa
 from collections.abc import Iterator, Iterable
 from typing import Any
 
+from aiohttp import RequestInfo
 from yarl import URL
 
 from aiorequestful.exception import AIORequestfulImportError
@@ -20,8 +21,9 @@ def get_iterator(value: Any) -> Iterator | None:
         return iter(())
     elif isinstance(value, Iterator):
         return value
-    elif isinstance(value, str) or not isinstance(value, Iterable):
+    elif isinstance(value, str) or isinstance(value, RequestInfo) or not isinstance(value, Iterable):
         value = (value,)
+    print("MAKING ITER", value)
     return iter(value)
 
 
