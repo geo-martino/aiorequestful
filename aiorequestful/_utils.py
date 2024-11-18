@@ -23,7 +23,6 @@ def get_iterator(value: Any) -> Iterator | None:
         return value
     elif isinstance(value, str) or isinstance(value, RequestInfo) or not isinstance(value, Iterable):
         value = (value,)
-    print("MAKING ITER", value)
     return iter(value)
 
 
