@@ -46,7 +46,6 @@ def format_url_log(method: str, url: URL, messages: UnitIterable[Any]) -> str:
 
 def required_modules_installed(modules: list, this: object = None) -> bool:
     """Check the required modules are installed, raise :py:class:`AIORequestfulImportError` if not."""
-    print(modules)
     modules_installed = all(module is not None for module in modules)
     if not modules_installed and this is not None:
         names = [name for name, obj in globals().items() if obj in modules and not name.startswith("_")]
