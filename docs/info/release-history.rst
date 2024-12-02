@@ -31,6 +31,14 @@ Release History
 The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
+1.0.5
+=====
+
+Fixed
+-----
+* Replace ``classmethod`` + ``property`` decorators with custom :py:class:`.classproperty` decorator
+  to fix issues in Python v3.13
+
 1.0.4
 =====
 

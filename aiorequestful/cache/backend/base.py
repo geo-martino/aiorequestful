@@ -12,7 +12,7 @@ from typing import Any, Self, Unpack
 from aiohttp import RequestInfo, ClientRequest, ClientResponse
 from dateutil.relativedelta import relativedelta
 
-from aiorequestful._utils import get_iterator
+from aiorequestful._utils import get_iterator, classproperty
 from aiorequestful.cache.exception import CacheError
 from aiorequestful.response.exception import PayloadHandlerError
 from aiorequestful.response.payload import PayloadHandler, StringPayloadHandler
@@ -260,9 +260,8 @@ class ResponseCache[R: ResponseRepository](MutableMapping[str, R], metaclass=ABC
 
     __slots__ = ("cache_name", "repository_getter", "expire", "_repositories")
 
-    # noinspection PyPropertyDefinition
-    @classmethod
-    @property
+    # noinspection PyMethodParameters
+    @classproperty
     @abstractmethod
     def type(cls) -> str:
         """A string representing the type of the backend this class represents."""
