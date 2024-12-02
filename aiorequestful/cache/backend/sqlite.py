@@ -15,7 +15,7 @@ from aiohttp import RequestInfo, ClientRequest, ClientResponse
 from dateutil.relativedelta import relativedelta
 
 from aiorequestful import PROGRAM_NAME
-from aiorequestful._utils import required_modules_installed
+from aiorequestful._utils import required_modules_installed, classproperty
 from aiorequestful.cache.backend.base import DEFAULT_EXPIRE, ResponseCache, ResponseRepository, RepositoryRequestType
 from aiorequestful.cache.backend.base import ResponseRepositorySettings
 from aiorequestful.cache.exception import CacheError
@@ -40,9 +40,8 @@ class SQLiteTable[K: tuple[Any, ...], V: str](ResponseRepository[K, V]):
     #: The column under which the response expiry time is stored in the table
     expiry_column = "expires_at"
 
-    # noinspection PyPropertyDefinition
-    @classmethod
-    @property
+    # noinspection PyMethodParameters
+    @classproperty
     def _required_modules(cls) -> list:
         return [aiosqlite]
 
@@ -231,9 +230,8 @@ class SQLiteCache(ResponseCache[SQLiteTable]):
 
     __slots__ = ("_connector", "connection")
 
-    # noinspection PyPropertyDefinition
-    @classmethod
-    @property
+    # noinspection PyMethodParameters
+    @classproperty
     def type(cls):
         return "sqlite"
 
@@ -294,7 +292,6 @@ class SQLiteCache(ResponseCache[SQLiteTable]):
             repository_getter: Callable[[Self, URLInput], SQLiteTable] = None,
             expire: timedelta | relativedelta = DEFAULT_EXPIRE,
     ):
-        # noinspection PyProtectedMember,PyTypeChecker
         required_modules_installed(SQLiteTable._required_modules, self)
 
         super().__init__(cache_name=cache_name, repository_getter=repository_getter, expire=expire)

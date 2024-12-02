@@ -11,6 +11,15 @@ from aiorequestful.exception import AIORequestfulImportError
 from aiorequestful.types import UnitIterable
 
 
+class classproperty:
+    """Set an immutable class property with this decorator"""
+    def __init__(self, func):
+        self.fget = func
+
+    def __get__(self, instance, owner):
+        return self.fget(owner)
+
+
 def get_iterator(value: Any) -> Iterator | None:
     """
     Safely get an iterator.
@@ -37,6 +46,7 @@ def format_url_log(method: str, url: URL, messages: UnitIterable[Any]) -> str:
 
 def required_modules_installed(modules: list, this: object = None) -> bool:
     """Check the required modules are installed, raise :py:class:`AIORequestfulImportError` if not."""
+    print(modules)
     modules_installed = all(module is not None for module in modules)
     if not modules_installed and this is not None:
         names = [name for name, obj in globals().items() if obj in modules and not name.startswith("_")]
