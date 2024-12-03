@@ -225,7 +225,6 @@ class TestRequestHandler:
             url: URL,
             mock_handle_response: AsyncMock,
             mock_log_response: AsyncMock,
-            mock_handle_retry_timer: AsyncMock,
             requests_mock: aioresponses,
     ):
         def raise_error(*_, **__):
@@ -233,6 +232,7 @@ class TestRequestHandler:
             raise aiohttp.ClientConnectionError()
 
         requests_mock.get(url, callback=raise_error, repeat=True)
+        assert request_handler.retry_timer is None
 
         async with request_handler as handler:
             async with handler._request(method=HTTPMethod.GET, url=url) as response:
@@ -243,7 +243,7 @@ class TestRequestHandler:
 
         mock_handle_response.assert_not_called()
         mock_log_response.assert_not_called()
-        mock_handle_retry_timer.assert_not_called()
+        # mock_handle_retry_timer.assert_not_called()
 
     async def test_request_repeats_on_handled_response(
             self,
@@ -251,11 +251,11 @@ class TestRequestHandler:
             url: URL,
             mock_handle_response: AsyncMock,
             mock_log_response: AsyncMock,
-            mock_handle_retry_timer: AsyncMock,
             requests_mock: aioresponses,
     ):
         requests_mock.get(url, status=400)
         mock_handle_response.side_effect = AsyncMock(return_value=True)
+        assert request_handler.retry_timer is None
 
         async with request_handler as handler:
             with pytest.raises(RequestError):  # fails on 2nd request as requests mock only mocks 1st request
@@ -263,7 +263,6 @@ class TestRequestHandler:
 
         mock_handle_response.assert_called_once()
         mock_log_response.assert_not_called()
-        mock_handle_retry_timer.assert_not_called()
 
     async def test_request_logs_and_handles_retry_timer(
             self,

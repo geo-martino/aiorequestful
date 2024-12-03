@@ -261,7 +261,8 @@ class RequestHandler[A: Authoriser, P: Any]:
         while True:
             async with self._request(method=method, url=url, **kwargs) as response:
                 if response is None:
-                    raise RequestError("No response received")
+                    await self._handle_retry_timer(method=method, url=url, timer=retry_timer)
+                    continue
 
                 if await self._handle_response(response, retry_timer=retry_timer):
                     continue
@@ -307,6 +308,8 @@ class RequestHandler[A: Authoriser, P: Any]:
         except aiohttp.ClientError as ex:
             self.logger.debug(str(ex))
             yield
+            if self.wait_timer is not None:
+                await self.wait_timer
 
     @staticmethod
     def _clean_requests_kwargs(kwargs: dict[str, Any]) -> None:
