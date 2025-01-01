@@ -446,7 +446,9 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
         )
 
         try:
-            callback_state = uuid.UUID(unquote(callback_url.query["state"]))
+            # value of 'state' key may include the HTTP version too
+            # we need to split the value up and take only the state value in position 0
+            callback_state = uuid.UUID(unquote(callback_url.query["state"].split()[0]))
         except ValueError:
             raise AuthoriserError("Returned state is not a valid UUID")
 

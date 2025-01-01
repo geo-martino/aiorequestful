@@ -31,6 +31,16 @@ Release History
 The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
+
+1.0.8
+=====
+
+Fixed
+-----
+* :py:class:`.AuthorisationCodeFlow` now correctly picks up the returned state value from the redirect URL
+  even if it also contains the HTTP version
+
+
 1.0.7
 =====
 
