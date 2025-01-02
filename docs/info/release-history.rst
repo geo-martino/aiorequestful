@@ -32,6 +32,16 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
 
+1.0.9
+=====
+
+Changed
+-------
+* :py:class:`.OAuth2Authoriser` now allows for control over params key for child classes
+  via the ``_param_key`` class attribute.
+  This now supports delivering params via either the query or body or the request.
+
+
 1.0.8
 =====
 
