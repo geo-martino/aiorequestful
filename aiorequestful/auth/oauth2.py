@@ -12,7 +12,7 @@ import uuid
 from abc import ABCMeta
 from collections.abc import Awaitable
 from http import HTTPMethod
-from typing import Any, Self
+from typing import Any, Self, Literal
 from urllib.parse import unquote
 from webbrowser import open as webopen
 
@@ -30,6 +30,8 @@ class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
     """Abstract implementation of an :py:class:`.Authoriser` for OAuth2 authorisation flows."""
 
     __slots__ = ("token_request", "response", "tester")
+
+    _param_key: Literal["data", "params"] = "params"
 
     @property
     def is_token_valid(self) -> Awaitable[bool]:
@@ -61,7 +63,7 @@ class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
         }
 
     async def _request_token(self, session: ClientSession, request: AuthRequest, params: dict[str, Any] = None) -> None:
-        with request.enrich_parameters("params", params if params else {}):
+        with request.enrich_parameters(self._param_key, params if params else {}):
             async with request(session=session) as r:
                 self.response.replace(await r.json())
 
@@ -99,16 +101,12 @@ class ClientCredentialsFlow(OAuth2Authoriser):
         :param client_secret: The client secret.
         :return: The initialised object.
         """
+        token_params = {"client_id": client_id, "client_secret": client_secret}
         token_request = AuthRequest(
-            method=HTTPMethod.POST,
-            url=URL(token_request_url),
-            params={
-                "client_id": client_id,
-                "client_secret": client_secret,
-            }
+            method=HTTPMethod.POST, url=URL(token_request_url), **{cls._param_key: token_params}
         )
 
-        return ClientCredentialsFlow(
+        return cls(
             service_name=service_name,
             token_request=token_request,
         )
@@ -143,9 +141,9 @@ class ClientCredentialsFlow(OAuth2Authoriser):
             client_id=client_id, client_secret=client_secret
         )
 
-        if hasattr(obj.token_request, "params"):
-            obj.token_request.params.pop("client_id", None)
-            obj.token_request.params.pop("client_secret", None)
+        if params := getattr(obj.token_request, cls._param_key):
+            params.pop("client_id", None)
+            params.pop("client_secret", None)
         obj.token_request.headers = credentials_headers
 
         return obj
@@ -229,31 +227,22 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
         :param scope: The scope/s to request access for from the user during user authorisation.
         :return: The initialised object.
         """
+        user_params = {"client_id": client_id, "scope": " ".join(get_iterator(scope))}
         user_request = AuthRequest(
-            method=HTTPMethod.POST,
-            url=URL(user_request_url),
-            params={
-                "client_id": client_id,
-                "scope": " ".join(get_iterator(scope))
-            }
-        )
-        token_request = AuthRequest(
-            method=HTTPMethod.POST,
-            url=URL(token_request_url),
-            params={
-                "client_id": client_id,
-                "client_secret": client_secret,
-            }
-        )
-        refresh_request = None if not refresh_request_url else AuthRequest(
-            method=HTTPMethod.POST,
-            url=URL(refresh_request_url),
-            params={
-                "client_id": client_id,
-            }
+            method=HTTPMethod.POST, url=URL(user_request_url), **{cls._param_key: user_params}
         )
 
-        return AuthorisationCodeFlow(
+        token_params = {"client_id": client_id, "client_secret": client_secret}
+        token_request = AuthRequest(
+            method=HTTPMethod.POST, url=URL(token_request_url), **{cls._param_key: token_params}
+        )
+
+        refresh_params = {"client_id": client_id}
+        refresh_request = None if not refresh_request_url else AuthRequest(
+            method=HTTPMethod.POST, url=URL(refresh_request_url), **{cls._param_key: refresh_params}
+        )
+
+        return cls(
             service_name=service_name,
             user_request=user_request,
             token_request=token_request,
@@ -299,14 +288,14 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
             client_id=client_id, client_secret=client_secret
         )
 
-        if hasattr(obj.token_request, "params"):
-            obj.token_request.params.pop("client_id", None)
-            obj.token_request.params.pop("client_secret", None)
+        if params := getattr(obj.token_request, cls._param_key):
+            params.pop("client_id", None)
+            params.pop("client_secret", None)
         obj.token_request.headers = credentials_headers
 
         if obj.refresh_request:
-            if hasattr(obj.refresh_request, "params"):
-                obj.refresh_request.params.pop("client_id", None)
+            if params := getattr(obj.token_request, cls._param_key):
+                params.pop("client_id", None)
             obj.refresh_request.headers = credentials_headers
 
         return obj
@@ -425,7 +414,7 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
         state = uuid.uuid4()
         params = self._generate_authorise_user_params(state=state)
 
-        with self.socket_handler as listener, self.user_request.enrich_parameters("params", params):
+        with self.socket_handler as listener, self.user_request.enrich_parameters(self._param_key, params):
             self._display_message(
                 f"\33[1mOpening {self.service_name} in your browser. "
                 f"Log in to {self.service_name}, authorise, and return here after \33[0m"
@@ -507,30 +496,22 @@ class AuthorisationCodePKCEFlow(AuthorisationCodeFlow):
         :param scope: The scope/s to request access for from the user during user authorisation.
         :return: The initialised object.
         """
+        user_params = {"client_id": client_id, "scope": " ".join(get_iterator(scope))}
         user_request = AuthRequest(
-            method=HTTPMethod.POST,
-            url=URL(user_request_url),
-            params={
-                "client_id": client_id,
-                "scope": " ".join(get_iterator(scope)),
-            }
-        )
-        token_request = AuthRequest(
-            method=HTTPMethod.POST,
-            url=URL(token_request_url),
-            params={
-                "client_id": client_id,
-            }
-        )
-        refresh_request = None if not refresh_request_url else AuthRequest(
-            method=HTTPMethod.POST,
-            url=URL(refresh_request_url),
-            params={
-                "client_id": client_id,
-            }
+            method=HTTPMethod.POST, url=URL(user_request_url), **{cls._param_key: user_params}
         )
 
-        return AuthorisationCodePKCEFlow(
+        token_params = {"client_id": client_id}
+        token_request = AuthRequest(
+            method=HTTPMethod.POST, url=URL(token_request_url), **{cls._param_key: token_params}
+        )
+
+        refresh_params = {"client_id": client_id}
+        refresh_request = None if not refresh_request_url else AuthRequest(
+            method=HTTPMethod.POST, url=URL(refresh_request_url), **{cls._param_key: refresh_params}
+        )
+
+        return cls(
             service_name=service_name,
             user_request=user_request,
             token_request=token_request,
