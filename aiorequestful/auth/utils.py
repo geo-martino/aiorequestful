@@ -34,7 +34,16 @@ class AuthRequest:
         https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request
     """
 
-    __slots__ = tuple(list(RequestKwargs.__annotations__))
+    __slots__ = tuple(["_payload_key"] + list(RequestKwargs.__annotations__))
+
+    @property
+    def payload(self) -> dict[str, Any] | None:
+        """The payload for this request"""
+        return getattr(self, self._payload_key, None)
+
+    @payload.setter
+    def payload(self, value: dict[str, Any]):
+        setattr(self, self._payload_key, value)
 
     def __init__(self, method: MethodInput, url: URLInput, **kwargs: Unpack[RequestKwargs]):
         self.method = HTTPMethod(method.upper())
@@ -43,10 +52,30 @@ class AuthRequest:
         for k, v in kwargs.items():
             setattr(self, k, v)
 
+        self._payload_key = "params"
+        if hasattr(self, (key := "data")):
+            self._payload_key = key
+        elif hasattr(self, (key := "json")):
+            self._payload_key = key
+
+    def set_payload_type(self, kind: Literal["data", "params", "json"]) -> None:
+        """Remap the payload type to query params ('params'), body ('data'), or JSON payloads"""
+        payload = self.payload
+        if hasattr(self, self._payload_key):
+            delattr(self, self._payload_key)
+
+        self._payload_key = kind
+        if payload is None:
+            return
+
+        setattr(self, self._payload_key, payload)
+
     @classmethod
     def _sanitise_kwargs(cls, kwargs: MutableMapping[str, Any]) -> None:
         cls._sanitise_map(kwargs.get("params"))
         cls._sanitise_map(kwargs.get("data"))
+        cls._sanitise_map(kwargs.get("json"))
+        cls._sanitise_map(kwargs.get("headers"))
 
     @classmethod
     def _sanitise_map(cls, value: MutableMapping[str, Any] | None) -> None:
@@ -60,21 +89,32 @@ class AuthRequest:
                 value[k] = json.dumps(v)
 
     @contextmanager
-    def enrich_parameters(
-            self, key: Literal["data", "params", "json", "headers"], value: dict[str, Any]
-    ) -> Generator[None, None, None]:
+    def enrich_payload(self, value: dict[str, Any]) -> Generator[None, None, None]:
         """
-        Temporarily append data to the parameters of a request within a context,
+        Temporarily append data to the payload of a request within a context,
         removing them when no longer in context.
 
-        :param key: The keyword of the argument to append data to.
         :param value: The value to append.
         """
+        yield from self._enrich_parameters(self._payload_key, value)
+
+    @contextmanager
+    def enrich_headers(self, value: dict[str, Any]) -> Generator[None, None, None]:
+        """
+        Temporarily append data to the headers of a request within a context,
+        removing them when no longer in context.
+
+        :param value: The value to append.
+        """
+        yield from self._enrich_parameters("headers", value)
+
+    def _enrich_parameters(self, key: str, value: dict[str, Any]) -> Generator[None, None, None]:
         if not value:
             yield
             return
 
-        current_value = getattr(self, key, {})
+        if not (current_value := getattr(self, key, None)):
+            current_value = {}
         setattr(self, key, current_value | value)
 
         yield
@@ -92,7 +132,7 @@ class AuthRequest:
         """Send the request within the given ``session`` and return the response."""
         kwargs = {
             key: deepcopy(getattr(self, key)) for key in self.__slots__
-            if key not in ("method", "url") and hasattr(self, key)
+            if not key.startswith("_") and key not in ("method", "url") and hasattr(self, key)
         }
         self._sanitise_kwargs(kwargs)
 
@@ -328,7 +368,7 @@ class AuthTester:
         if self.request is None or self.response_test is None:
             return True
 
-        with self.request.enrich_parameters("headers", headers):
+        with self.request.enrich_headers(headers):
             async with ClientSession() as session:
                 async with self.request(session=session) as response:
                     result = await self.response_test(response)

@@ -16,7 +16,7 @@ async def request(request: AuthRequest) -> None:
 # AUTH REQUEST - TEMP PARAMS
 
 async def request_with_temporary_headers(request: AuthRequest, headers: dict[str, str]) -> None:
-    with request.enrich_parameters("headers", headers):
+    with request.enrich_headers(headers):
         async with ClientSession() as session:
             await request(session)
 

@@ -71,7 +71,7 @@ class OAuth2Tester(ABC):
 
         async with ClientSession() as session:
             await authoriser._request_token(
-                session, request=authoriser.token_request, params=token_request_params
+                session, request=authoriser.token_request, payload=token_request_params
             )
 
         assert_response(authoriser.response._response, auth_response)
@@ -93,7 +93,7 @@ class TestClientCredentialsFlow(OAuth2Tester):
 
     @pytest.fixture
     def token_request_params(self, authoriser: ClientCredentialsFlow, **__) -> dict[str, Any]:
-        return authoriser._generate_request_token_params()
+        return authoriser._generate_request_token_payload()
 
     @pytest.fixture
     def mock_request_token(self, authoriser: ClientCredentialsFlow, mocker: MockerFixture) -> AsyncMock:
@@ -261,7 +261,7 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
     # noinspection PyMethodOverriding
     @pytest.fixture
     def token_request_params(self, authoriser: AuthorisationCodeFlow, user_auth_code: str, **__) -> dict[str, Any]:
-        return authoriser._generate_request_token_params(code=user_auth_code)
+        return authoriser._generate_request_token_payload(code=user_auth_code)
 
     @pytest.fixture
     def user_auth_code(
@@ -363,9 +363,9 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
         refresh_token = "test-token"
         requests_mock.post(re.compile(str(authoriser.token_request.url)), callback=exchange_response_for_token)
 
-        request_params = authoriser._generate_refresh_token_params(refresh_token=refresh_token)
+        request_params = authoriser._generate_refresh_token_payload(refresh_token=refresh_token)
         async with ClientSession() as session:
-            await authoriser._request_token(session, request=authoriser.refresh_request, params=request_params)
+            await authoriser._request_token(session, request=authoriser.refresh_request, payload=request_params)
 
         assert_response(authoriser.response._response, auth_response)
         assert "refresh_token" not in getattr(authoriser.token_request, "params", {})
@@ -436,8 +436,8 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
             mock_user_auth: AsyncMock,
             mocker: MockerFixture,
     ):
-        async def request_token(params: dict[str, Any], **__) -> JSON:
-            if params["grant_type"] == "refresh_token":
+        async def request_token(payload: dict[str, Any], **__) -> JSON:
+            if payload["grant_type"] == "refresh_token":
                 response = {authoriser.response.token_key: "refresh"}
             else:
                 response = {authoriser.response.token_key: "request"}
@@ -467,7 +467,7 @@ class TestAuthorisationCodeFlow(OAuth2Tester):
         mock_user_auth.assert_called_once()
         assert mock_request_token.call_count == 2
 
-        assert authoriser.response._response == await request_token(params={"grant_type": "request"})
+        assert authoriser.response._response == await request_token(payload={"grant_type": "request"})
         assert valid
 
     ###########################################################################
@@ -620,7 +620,7 @@ class TestAuthorisationCodePKCEFlow(OAuth2Tester):
 
     @pytest.fixture
     def token_request_params(self, authoriser: AuthorisationCodePKCEFlow, **__) -> dict[str, Any]:
-        return authoriser._generate_request_token_params(code="test-code")
+        return authoriser._generate_request_token_payload(code="test-code")
 
     def test_init_fails(self, authoriser: AuthorisationCodePKCEFlow):
         with pytest.raises(AuthoriserError):
@@ -631,9 +631,9 @@ class TestAuthorisationCodePKCEFlow(OAuth2Tester):
             )
 
     def test_generate_authorise_user_params(self, authoriser: AuthorisationCodePKCEFlow):
-        params = authoriser._generate_authorise_user_params(state=uuid.uuid4())
+        params = authoriser._generate_authorise_user_payload(state=uuid.uuid4())
         assert params
 
     def test_generate_request_token_params(self, authoriser: AuthorisationCodePKCEFlow):
-        params = authoriser._generate_request_token_params(code="test-code")
+        params = authoriser._generate_request_token_payload(code="test-code")
         assert params

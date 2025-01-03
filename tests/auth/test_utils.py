@@ -61,39 +61,95 @@ class TestAuthRequest:
     def get_vars(obj: Any) -> dict[str, Any]:
         return {k: getattr(obj, k) for k in obj.__slots__ if hasattr(obj, k)}
 
-    def test_enrich_parameters(self, auth_request: AuthRequest):
+    def test_determines_payload_key(self):
+        params = {"key": "value"}
+        request = AuthRequest(
+            method=HTTPMethod.GET,
+            url="http://localhost:35000",
+            headers=params,
+        )
+        assert request._payload_key == "params"  # default value
+        assert request.payload is None
 
+        request = AuthRequest(
+            method=HTTPMethod.GET,
+            url="http://localhost:35000",
+            params=params
+        )
+        assert request._payload_key == "params"
+        assert request.payload == params
+
+        request = AuthRequest(
+            method=HTTPMethod.GET,
+            url="http://localhost:35000",
+            data=params
+        )
+        assert request._payload_key == "data"
+        assert request.payload == params
+
+        request = AuthRequest(
+            method=HTTPMethod.GET,
+            url="http://localhost:35000",
+            json=params
+        )
+        assert request._payload_key == "json"
+        assert request.payload == params
+
+    def test_enrich_parameters(self, auth_request: AuthRequest):
         original = deepcopy(self.get_vars(auth_request))
         extension = {"code": 123}
-        assert not hasattr(auth_request, "params")
 
-        auth_request.enrich_parameters("params", extension)
+        assert auth_request._payload_key == "params"
+        assert not hasattr(auth_request, "params")
+        assert not hasattr(auth_request, "headers")
+
+        auth_request.enrich_payload(extension)
         assert self.get_vars(auth_request) == original
 
-        with auth_request.enrich_parameters("params", extension):
+        with auth_request.enrich_payload(extension):
             assert self.get_vars(auth_request) != original
             assert hasattr(auth_request, "params")
             assert getattr(auth_request, "params") == extension
 
+        auth_request.enrich_headers(extension)
+        assert self.get_vars(auth_request) == original
+
+        with auth_request.enrich_headers(extension):
+            assert self.get_vars(auth_request) != original
+            assert hasattr(auth_request, "headers")
+            assert getattr(auth_request, "headers") == extension
+
         assert self.get_vars(auth_request) == original
         assert not hasattr(auth_request, "params")
+        assert not hasattr(auth_request, "headers")
 
     def test_enrich_parameters_on_existing(self, auth_request: AuthRequest):
-        auth_request.params = {"key": "value"}
+        auth_request.payload = {"key": "value"}
+        auth_request.headers = {"header_key": "header_value"}
         original = deepcopy(self.get_vars(auth_request))
         extension = {"code": 123}
 
-        auth_request.enrich_parameters("params", extension)
+        auth_request.enrich_payload(extension)
         assert self.get_vars(auth_request) == original
-        assert all(key not in auth_request.params for key in extension)
+        assert all(key not in auth_request.payload for key in extension)
 
-        with auth_request.enrich_parameters("params", extension):
+        with auth_request.enrich_payload(extension):
             assert self.get_vars(auth_request) != original
-            assert all(key in auth_request.params for key in extension)
-            assert auth_request.params["code"] == extension["code"]
+            assert all(key in auth_request.payload for key in extension)
+            assert auth_request.payload["code"] == extension["code"]
+
+        auth_request.enrich_headers(extension)
+        assert self.get_vars(auth_request) == original
+        assert all(key not in auth_request.headers for key in extension)
+
+        with auth_request.enrich_headers(extension):
+            assert self.get_vars(auth_request) != original
+            assert all(key in auth_request.headers for key in extension)
+            assert auth_request.headers["code"] == extension["code"]
 
         assert self.get_vars(auth_request) == original
-        assert all(key not in auth_request.params for key in extension)
+        assert all(key not in auth_request.payload for key in extension)
+        assert all(key not in auth_request.headers for key in extension)
 
     async def test_request(self, auth_request: AuthRequest, requests_mock: aioresponses):
         actual = {}
@@ -103,7 +159,7 @@ class TestAuthRequest:
             actual.update(params)
 
         requests_mock.get(re.compile(str(auth_request.url)), callback=callback)
-        with auth_request.enrich_parameters("params", expected):
+        with auth_request.enrich_payload(expected):
             async with ClientSession() as session:
                 async with auth_request.request(session):
                     pass

@@ -12,7 +12,7 @@ import uuid
 from abc import ABCMeta
 from collections.abc import Awaitable
 from http import HTTPMethod
-from typing import Any, Self, Literal
+from typing import Any, Self
 from urllib.parse import unquote
 from webbrowser import open as webopen
 
@@ -30,8 +30,6 @@ class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
     """Abstract implementation of an :py:class:`.Authoriser` for OAuth2 authorisation flows."""
 
     __slots__ = ("token_request", "response", "tester")
-
-    _param_key: Literal["data", "params"] = "params"
 
     @property
     def is_token_valid(self) -> Awaitable[bool]:
@@ -62,15 +60,15 @@ class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
             "Authorization": f"Basic {credentials_encoded}",
         }
 
-    async def _request_token(self, session: ClientSession, request: AuthRequest, params: dict[str, Any] = None) -> None:
-        with request.enrich_parameters(self._param_key, params if params else {}):
+    async def _request_token(self, session: ClientSession, request: AuthRequest, payload: dict[str, Any] = None) -> None:
+        with request.enrich_payload(payload if payload else {}):
             async with request(session=session) as r:
                 self.response.replace(await r.json())
 
-        self.response.enrich(refresh_token=params.get("refresh_token"))
+        self.response.enrich(refresh_token=payload.get("refresh_token"))
 
         sanitised_response = self.response.sanitised
-        kind = "generated" if not params.get("grant_type") == "refresh_token" else "refreshed"
+        kind = "generated" if not payload.get("grant_type") == "refresh_token" else "refreshed"
         self.logger.debug(f"Auth response {kind}: {sanitised_response}")
 
 
@@ -101,9 +99,10 @@ class ClientCredentialsFlow(OAuth2Authoriser):
         :param client_secret: The client secret.
         :return: The initialised object.
         """
-        token_params = {"client_id": client_id, "client_secret": client_secret}
         token_request = AuthRequest(
-            method=HTTPMethod.POST, url=URL(token_request_url), **{cls._param_key: token_params}
+            method=HTTPMethod.POST,
+            url=URL(token_request_url),
+            params={"client_id": client_id, "client_secret": client_secret}
         )
 
         return cls(
@@ -141,9 +140,9 @@ class ClientCredentialsFlow(OAuth2Authoriser):
             client_id=client_id, client_secret=client_secret
         )
 
-        if params := getattr(obj.token_request, cls._param_key):
-            params.pop("client_id", None)
-            params.pop("client_secret", None)
+        if payload := obj.token_request.payload:
+            payload.pop("client_id", None)
+            payload.pop("client_secret", None)
         obj.token_request.headers = credentials_headers
 
         return obj
@@ -162,9 +161,9 @@ class ClientCredentialsFlow(OAuth2Authoriser):
                 log = "Loaded access token is not valid and and no refresh data found"
             self.logger.debug(f"{log}. Generating new token...")
 
-            params = self._generate_request_token_params()
+            payload = self._generate_request_token_payload()
             async with ClientSession() as session:
-                await self._request_token(session=session, request=self.token_request, params=params)
+                await self._request_token(session=session, request=self.token_request, payload=payload)
 
             valid = await self.is_token_valid
 
@@ -179,7 +178,7 @@ class ClientCredentialsFlow(OAuth2Authoriser):
         return self.response.headers
 
     @staticmethod
-    def _generate_request_token_params() -> dict[str, Any]:
+    def _generate_request_token_payload() -> dict[str, Any]:
         return {"grant_type": "client_credentials"}
 
 
@@ -227,19 +226,22 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
         :param scope: The scope/s to request access for from the user during user authorisation.
         :return: The initialised object.
         """
-        user_params = {"client_id": client_id, "scope": " ".join(get_iterator(scope))}
         user_request = AuthRequest(
-            method=HTTPMethod.POST, url=URL(user_request_url), **{cls._param_key: user_params}
+            method=HTTPMethod.POST,
+            url=URL(user_request_url),
+            params={"client_id": client_id, "scope": " ".join(get_iterator(scope))}
         )
 
-        token_params = {"client_id": client_id, "client_secret": client_secret}
         token_request = AuthRequest(
-            method=HTTPMethod.POST, url=URL(token_request_url), **{cls._param_key: token_params}
+            method=HTTPMethod.POST,
+            url=URL(token_request_url),
+            params={"client_id": client_id, "client_secret": client_secret}
         )
 
-        refresh_params = {"client_id": client_id}
         refresh_request = None if not refresh_request_url else AuthRequest(
-            method=HTTPMethod.POST, url=URL(refresh_request_url), **{cls._param_key: refresh_params}
+            method=HTTPMethod.POST,
+            url=URL(refresh_request_url),
+            params={"client_id": client_id}
         )
 
         return cls(
@@ -288,14 +290,14 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
             client_id=client_id, client_secret=client_secret
         )
 
-        if params := getattr(obj.token_request, cls._param_key):
-            params.pop("client_id", None)
-            params.pop("client_secret", None)
+        if payload := obj.token_request.payload:
+            payload.pop("client_id", None)
+            payload.pop("client_secret", None)
         obj.token_request.headers = credentials_headers
 
         if obj.refresh_request:
-            if params := getattr(obj.token_request, cls._param_key):
-                params.pop("client_id", None)
+            if payload := obj.token_request.payload:
+                payload.pop("client_id", None)
             obj.refresh_request.headers = credentials_headers
 
         return obj
@@ -342,8 +344,8 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
             self.logger.debug("Saved access token not found. Generating new token...")
             async with ClientSession() as session:
                 code = await self._authorise_user(session=session)
-                params = self._generate_request_token_params(code=code)
-                await self._request_token(session=session, request=self.token_request, params=params)
+                payload = self._generate_request_token_payload(code=code)
+                await self._request_token(session=session, request=self.token_request, payload=payload)
 
         valid = await self.is_token_valid
 
@@ -371,8 +373,8 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
                     "Loaded access token is not valid and refresh data found. Refreshing token and testing..."
                 )
 
-                params = self._generate_refresh_token_params(refresh_token=self.response["refresh_token"])
-                await self._request_token(session=session, request=self.refresh_request, params=params)
+                payload = self._generate_refresh_token_payload(refresh_token=self.response["refresh_token"])
+                await self._request_token(session=session, request=self.refresh_request, payload=payload)
 
                 valid = await self.is_token_valid
                 refreshed = True
@@ -385,8 +387,8 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
                 self.logger.debug(f"{log}. Generating new token...")
 
                 code = await self._authorise_user(session=session)
-                params = self._generate_request_token_params(code=code)
-                await self._request_token(session=session, request=self.token_request, params=params)
+                payload = self._generate_request_token_payload(code=code)
+                await self._request_token(session=session, request=self.token_request, payload=payload)
 
                 valid = await self.is_token_valid
 
@@ -405,16 +407,16 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
 
         print(message)
 
-    def _generate_authorise_user_params(self, state: uuid.UUID) -> dict[str, Any]:
+    def _generate_authorise_user_payload(self, state: uuid.UUID) -> dict[str, Any]:
         return {"response_type": "code", "redirect_uri": str(self.redirect_uri), "state": str(state)}
 
     async def _authorise_user(self, session: ClientSession) -> str:
         self.logger.debug("Authorising user privilege access...")
 
         state = uuid.uuid4()
-        params = self._generate_authorise_user_params(state=state)
+        payload = self._generate_authorise_user_payload(state=state)
 
-        with self.socket_handler as listener, self.user_request.enrich_parameters(self._param_key, params):
+        with self.socket_handler as listener, self.user_request.enrich_payload(payload):
             self._display_message(
                 f"\33[1mOpening {self.service_name} in your browser. "
                 f"Log in to {self.service_name}, authorise, and return here after \33[0m"
@@ -446,11 +448,11 @@ class AuthorisationCodeFlow(OAuth2Authoriser):
 
         return unquote(callback_url.query["code"])
 
-    def _generate_request_token_params(self, code: str) -> dict[str, Any]:
+    def _generate_request_token_payload(self, code: str) -> dict[str, Any]:
         return {"grant_type": "authorization_code", "code": code, "redirect_uri": str(self.redirect_uri)}
 
     @staticmethod
-    def _generate_refresh_token_params(refresh_token: str) -> dict[str, Any]:
+    def _generate_refresh_token_payload(refresh_token: str) -> dict[str, Any]:
         return {"grant_type": "refresh_token", "refresh_token": refresh_token}
 
 
@@ -496,19 +498,22 @@ class AuthorisationCodePKCEFlow(AuthorisationCodeFlow):
         :param scope: The scope/s to request access for from the user during user authorisation.
         :return: The initialised object.
         """
-        user_params = {"client_id": client_id, "scope": " ".join(get_iterator(scope))}
         user_request = AuthRequest(
-            method=HTTPMethod.POST, url=URL(user_request_url), **{cls._param_key: user_params}
+            method=HTTPMethod.POST,
+            url=URL(user_request_url),
+            params={"client_id": client_id, "scope": " ".join(get_iterator(scope))}
         )
 
-        token_params = {"client_id": client_id}
         token_request = AuthRequest(
-            method=HTTPMethod.POST, url=URL(token_request_url), **{cls._param_key: token_params}
+            method=HTTPMethod.POST,
+            url=URL(token_request_url),
+            params={"client_id": client_id}
         )
 
-        refresh_params = {"client_id": client_id}
         refresh_request = None if not refresh_request_url else AuthRequest(
-            method=HTTPMethod.POST, url=URL(refresh_request_url), **{cls._param_key: refresh_params}
+            method=HTTPMethod.POST,
+            url=URL(refresh_request_url),
+            params={"client_id": client_id}
         )
 
         return cls(
@@ -545,7 +550,7 @@ class AuthorisationCodePKCEFlow(AuthorisationCodeFlow):
             response_tester=response_tester,
         )
 
-    def _generate_authorise_user_params(self, state: uuid.UUID) -> dict[str, Any]:
+    def _generate_authorise_user_payload(self, state: uuid.UUID) -> dict[str, Any]:
         code_hashed = hashlib.sha256(self.code_verifier.encode("ascii")).digest()
         code_encoded = base64.urlsafe_b64encode(code_hashed)
         code_challenge = code_encoded.decode("ascii")[:-1]
@@ -558,7 +563,7 @@ class AuthorisationCodePKCEFlow(AuthorisationCodeFlow):
             "code_challenge": code_challenge,
         }
 
-    def _generate_request_token_params(self, code: str) -> dict[str, Any]:
+    def _generate_request_token_payload(self, code: str) -> dict[str, Any]:
         return {
             "grant_type": "authorization_code",
             "code": code,

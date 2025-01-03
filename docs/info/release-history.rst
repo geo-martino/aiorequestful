@@ -32,6 +32,22 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
 
+1.0.10
+======
+
+Added
+-----
+* :py:meth:`.AuthRequest.set_payload_type` and ``payload`` property to :py:class:`.AuthRequest`.
+  This allows for payload type switching for each requests.
+  This is to solve an issue where some OAuth providers require the payload in either the body or query of the request
+  depending on the providers specification.
+
+Removed
+-------
+* ``_param_key`` class attribute in :py:class:`.OAuth2Authoriser` now allows for control over  for child classes
+  Support for switching the payload handling of requests is now handled solely by :py:class:`.AuthRequest`.
+
+
 1.0.9
 =====
 
