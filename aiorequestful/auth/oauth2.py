@@ -60,7 +60,9 @@ class OAuth2Authoriser(Authoriser, metaclass=ABCMeta):
             "Authorization": f"Basic {credentials_encoded}",
         }
 
-    async def _request_token(self, session: ClientSession, request: AuthRequest, payload: dict[str, Any] = None) -> None:
+    async def _request_token(
+            self, session: ClientSession, request: AuthRequest, payload: dict[str, Any] = None
+    ) -> None:
         with request.enrich_payload(payload if payload else {}):
             async with request(session=session) as r:
                 self.response.replace(await r.json())
