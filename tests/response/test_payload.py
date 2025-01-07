@@ -6,7 +6,7 @@ import pytest
 from aiohttp import ClientResponse
 
 from aiorequestful.response.exception import PayloadHandlerError
-from aiorequestful.response.payload import PayloadHandler, JSONPayloadHandler, StringPayloadHandler
+from aiorequestful.response.payload import PayloadHandler, JSONPayloadHandler, StringPayloadHandler, BytesPayloadHandler
 from aiorequestful.types import JSON
 
 
@@ -65,25 +65,6 @@ class PayloadHandlerTester(ABC):
             await handler.deserialize(None)
 
 
-class TestJSONPayloadHandler(PayloadHandlerTester):
-
-    @pytest.fixture
-    def handler(self) -> JSONPayloadHandler:
-        return JSONPayloadHandler()
-
-    @pytest.fixture
-    def payload(self) -> JSON:
-        return {"key": "value"}
-
-    @pytest.fixture
-    def payload_serialized(self, payload: Any) -> str:
-        return json.dumps(payload)
-
-    @pytest.fixture
-    def payload_encoded(self, payload: Any) -> bytes:
-        return json.dumps(payload).encode()
-
-
 class TestStringPayloadHandler(PayloadHandlerTester):
 
     @pytest.fixture
@@ -101,3 +82,41 @@ class TestStringPayloadHandler(PayloadHandlerTester):
     @pytest.fixture
     def payload_encoded(self, payload: Any) -> bytes:
         return payload.encode()
+
+
+class TestBytesPayloadHandler(PayloadHandlerTester):
+
+    @pytest.fixture
+    def handler(self) -> BytesPayloadHandler:
+        return BytesPayloadHandler()
+
+    @pytest.fixture
+    def payload(self) -> bytes:
+        return "I am a payload".encode()
+
+    @pytest.fixture
+    def payload_serialized(self, payload: bytes) -> str:
+        return payload.decode()
+
+    @pytest.fixture
+    def payload_encoded(self, payload: bytes) -> bytes:
+        return payload
+
+
+class TestJSONPayloadHandler(PayloadHandlerTester):
+
+    @pytest.fixture
+    def handler(self) -> JSONPayloadHandler:
+        return JSONPayloadHandler()
+
+    @pytest.fixture
+    def payload(self) -> JSON:
+        return {"key": "value"}
+
+    @pytest.fixture
+    def payload_serialized(self, payload: Any) -> str:
+        return json.dumps(payload)
+
+    @pytest.fixture
+    def payload_encoded(self, payload: Any) -> bytes:
+        return json.dumps(payload).encode()

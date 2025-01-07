@@ -36,6 +36,55 @@ class PayloadHandler[T: Any](ABC):
         return self.deserialize(response=response)
 
 
+class StringPayloadHandler(PayloadHandler[str]):
+
+    __slots__ = ()
+
+    async def serialize(self, payload: str | bytes | bytearray) -> str:
+        if isinstance(payload, bytes | bytearray):
+            return payload.decode()
+        return str(payload)
+
+    async def deserialize(self, response: str | bytes | bytearray | ClientResponse) -> str:
+        match response:
+            case str():
+                return response
+            case bytes() | bytearray():
+                return response.decode()
+            case ClientResponse():
+                return await response.text()
+            case None:
+                raise PayloadHandlerError(f"Unrecognised input type: {response}")
+            case _:
+                return str(response)
+
+
+class BytesPayloadHandler(PayloadHandler[bytes]):
+
+    __slots__ = ("encoding",)
+
+    def __init__(self, encoding: str = "utf-8"):
+        self.encoding = encoding
+
+    async def serialize(self, payload: str | bytes | bytearray) -> str:
+        if isinstance(payload, str):
+            return payload
+        return bytes(payload).decode(self.encoding)
+
+    async def deserialize(self, response: str | bytes | bytearray | ClientResponse) -> bytes:
+        match response:
+            case str():
+                return response.encode(self.encoding)
+            case bytes() | bytearray():
+                return bytes(response)
+            case ClientResponse():
+                return await response.read()
+            case None:
+                raise PayloadHandlerError(f"Unrecognised input type: {response}")
+            case _:
+                return bytes(response)
+
+
 class JSONPayloadHandler(PayloadHandler[JSON]):
 
     __slots__ = ("indent",)
@@ -64,26 +113,3 @@ class JSONPayloadHandler(PayloadHandler[JSON]):
                 return await response.json(content_type=None)
             case _:
                 raise PayloadHandlerError(f"Unrecognised input type: {response}")
-
-
-class StringPayloadHandler(PayloadHandler[str]):
-
-    __slots__ = ()
-
-    async def serialize(self, payload: str | bytes | bytearray) -> str:
-        if isinstance(payload, bytes | bytearray):
-            return payload.decode()
-        return str(payload)
-
-    async def deserialize(self, response: str | bytes | bytearray | ClientResponse) -> str:
-        match response:
-            case str():
-                return response
-            case bytes() | bytearray():
-                return response.decode()
-            case ClientResponse():
-                return await response.text()
-            case None:
-                raise PayloadHandlerError(f"Unrecognised input type: {response}")
-            case _:
-                return str(response)
