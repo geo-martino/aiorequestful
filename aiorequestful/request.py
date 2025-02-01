@@ -260,8 +260,11 @@ class RequestHandler[A: Authoriser, P: Any]:
 
         while True:
             async with self._request(method=method, url=url, **kwargs) as response:
-                if response is None:
-                    await self._handle_retry_timer(method=method, url=url, timer=retry_timer)
+                if response is None or isinstance(response, Exception):
+                    try:
+                        await self._handle_retry_timer(method=method, url=url, timer=retry_timer)
+                    except RequestError as ex:
+                        raise response if isinstance(response, Exception) else ex
                     continue
 
                 if await self._handle_response(response, retry_timer=retry_timer):
@@ -284,7 +287,7 @@ class RequestHandler[A: Authoriser, P: Any]:
             url: URLInput,
             log_message: str | list[str] = None,
             **kwargs
-    ) -> aiohttp.ClientResponse | None:
+    ) -> aiohttp.ClientResponse | Exception:
         """Handle logging a request, send the request, and return the response"""
         if isinstance(log_message, str):
             log_message = [log_message]
@@ -307,7 +310,7 @@ class RequestHandler[A: Authoriser, P: Any]:
                     await self.wait_timer
         except aiohttp.ClientError as ex:
             self.logger.debug(str(ex))
-            yield
+            yield ex
             if self.wait_timer is not None:
                 await self.wait_timer
 
