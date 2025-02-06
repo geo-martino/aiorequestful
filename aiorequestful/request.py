@@ -298,10 +298,10 @@ class RequestHandler[A: Authoriser, P: Any]:
             log_message.append("Cached Request")
         self.log(method=method.name, url=url, message=log_message, **kwargs)
 
-        if not isinstance(self.session, CachedSession):
-            self._clean_requests_kwargs(kwargs)
+        self._clean_requests_kwargs(kwargs)
         if "headers" in kwargs:
             kwargs["headers"].update(self.session.headers)
+        print(kwargs)
 
         try:
             async with self.session.request(method=method.name, url=url, **kwargs) as response:
@@ -317,9 +317,9 @@ class RequestHandler[A: Authoriser, P: Any]:
     @staticmethod
     def _clean_requests_kwargs(kwargs: dict[str, Any]) -> None:
         """Clean ``kwargs`` by removing any kwarg not in the signature of the :py:meth:`aiohttp.request` method."""
-        signature = inspect.signature(aiohttp.request).parameters
+        params = set(inspect.signature(CachedSession.request).parameters) | set(RequestKwargs.__annotations__)
         for key in list(kwargs):
-            if key not in signature:
+            if key not in params:
                 kwargs.pop(key)
 
     async def _log_response(self, response: aiohttp.ClientResponse, method: HTTPMethod, url: URLInput) -> None:

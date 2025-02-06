@@ -32,6 +32,14 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
 
+1.0.13
+======
+
+Fixed
+-----
+* :py:class:`.RequestHandler` passes all kwargs to request method again. This was broken in 1.0.12.
+
+
 1.0.12
 ======
 

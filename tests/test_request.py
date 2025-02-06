@@ -1,12 +1,14 @@
 import json
+from collections.abc import Mapping
 from http import HTTPMethod
 from typing import Any
 from unittest.mock import AsyncMock
 
 import aiohttp
 import pytest
-from aiohttp import ClientResponse
+from aiohttp import ClientResponse, JsonPayload
 from aioresponses import aioresponses
+from aioresponses.core import RequestCall
 from pytest_mock import MockerFixture
 from yarl import URL
 
@@ -114,6 +116,32 @@ class TestRequestHandler:
             request_handler.payload_handler = StringPayloadHandler()
             for repository in cache.values():
                 assert isinstance(repository.settings.payload_handler, StringPayloadHandler)
+
+    async def test_kwargs_cleaned(self, request_handler: RequestHandler, url: URL, requests_mock: aioresponses):
+        url = url.joinpath("test")
+        expected = {"key": "value"}
+        requests_mock.get(url, status=200, payload=expected, repeat=False)
+        valid_kwargs = dict(
+            headers={"Content-Type": "application/json"},
+            json={"key": "value"},
+            allow_redirects=False,
+        )
+
+        async with request_handler as handler:
+            result = await handler.get(url=url, persist=False, invalid_param="value", **valid_kwargs)
+            valid_kwargs["headers"] |= handler.session.headers
+
+        assert result == expected
+
+        # check that only valid kwargs were passed
+        request: RequestCall = next(
+            req for (request_method, request_url), requests in requests_mock.requests.items() for req in requests
+            if request_method == HTTPMethod.GET and request_url == url
+        )
+        # some remapping is necessary to get the kwargs back to the original state
+        actual_kwargs = {k: dict(v) if isinstance(v, Mapping) else v for k, v in request.kwargs.items()}
+        actual_kwargs["json"] = json.loads(actual_kwargs.pop("data").decode())
+        assert actual_kwargs == valid_kwargs
 
     async def test_uses_unique_retry_timer(
             self, request_handler: RequestHandler, url: URL, mocker: MockerFixture, requests_mock: aioresponses
