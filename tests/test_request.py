@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 
 import aiohttp
 import pytest
-from aiohttp import ClientResponse, JsonPayload
+from aiohttp import ClientResponse
 from aioresponses import aioresponses
 from aioresponses.core import RequestCall
 from pytest_mock import MockerFixture
