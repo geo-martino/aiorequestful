@@ -301,7 +301,6 @@ class RequestHandler[A: Authoriser, P: Any]:
         self._clean_requests_kwargs(kwargs)
         if "headers" in kwargs:
             kwargs["headers"].update(self.session.headers)
-        print(kwargs)
 
         try:
             async with self.session.request(method=method.name, url=url, **kwargs) as response:
