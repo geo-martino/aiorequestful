@@ -26,12 +26,9 @@ class AuthRequest:
     Request handler for sending authentication and authorisation requests.
     Supply this class with the required arguments for your request.
 
-    :param method: HTTP request method (such as GET, POST, PUT, etc.).
-    :param url: The URL of the request.
-    :param kwargs: Any other kwargs required for a successful request.
-        Arguments passed through to `.aiohttp.ClientSession.request`.
-        See aiohttp reference for more info on available kwargs:
-        https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request
+    Arguments passed through to `.aiohttp.ClientSession.request`.
+    See aiohttp reference for more info on available kwargs:
+    https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request
     """
 
     __slots__ = tuple(["_payload_key"] + list(RequestKwargs.__annotations__))
@@ -45,12 +42,12 @@ class AuthRequest:
     def payload(self, value: dict[str, Any]):
         setattr(self, self._payload_key, value)
 
-    def __init__(self, method: MethodInput, url: URLInput, **kwargs: Unpack[RequestKwargs]):
-        self.method = HTTPMethod(method.upper())
-        self.url = URL(url)
-
+    def __init__(self, **kwargs: Unpack[RequestKwargs]):
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+        self.method = HTTPMethod(kwargs["method"].upper())
+        self.url = URL(kwargs["url"])
 
         self._payload_key = "params"
         if hasattr(self, (key := "data")):

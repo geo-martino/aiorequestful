@@ -4,7 +4,7 @@ Implements a ClientSession which is also capable of caching response payload dat
 import contextlib
 import logging
 from http.client import InvalidURL
-from typing import Self, Any, Unpack
+from typing import Self, Unpack
 
 from aiohttp import ClientSession, ClientRequest
 from aiohttp.payload import JsonPayload
@@ -12,7 +12,7 @@ from aiohttp.payload import JsonPayload
 from aiorequestful._utils import format_url_log
 from aiorequestful.cache.backend.base import ResponseCache, ResponseRepository
 from aiorequestful.cache.response import CachedResponse
-from aiorequestful.types import URLInput, RequestKwargs
+from aiorequestful.types import RequestKwargs
 
 ClientSession.__init_subclass__ = lambda *_, **__: _  # WORKAROUND: forces disabling of inheritance warning
 
@@ -45,37 +45,31 @@ class CachedSession(ClientSession):
         await self.cache.__aexit__(exc_type, exc_val, exc_tb)
 
     @contextlib.asynccontextmanager
-    async def request(
-            self, method: str, url: URLInput, json: Any = None, persist: bool = True, **kwargs: Unpack[RequestKwargs]
-    ):
+    async def request(self, persist: bool = True, **kwargs: Unpack[RequestKwargs]):
         """
         Perform HTTP request.
 
-        :param method: HTTP request method (such as GET, POST, PUT, etc.)
-        :param url: The URL to perform the request on.
-        :param json: A JSON serializable Python object to send in the body of the request.
+        Arguments passed through to `.aiohttp.ClientSession.request`.
+        See aiohttp reference for more info on available kwargs:
+        https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request
+
         :param persist: Whether to persist responses returned from sending network requests i.e. non-cached responses.
-        :param kwargs: Any other kwargs required for a successful request.
-            Arguments passed through to `.aiohttp.ClientSession.request`.
-            See aiohttp reference for more info on available kwargs:
-            https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request
         :return: Either the :py:class:`CachedResponse` if a response was found in the cache,
             or the :py:class:`ClientResponse` if the request was sent.
         """
+        url = kwargs["url"]
         try:
-            url = self._build_url(url)
+            kwargs["url"] = self._build_url(url)
         except ValueError as exc:
             raise InvalidURL(url) from exc
 
         kwargs["headers"] = kwargs.get("headers", {}) | dict(self.headers)
-        if json is not None:
-            kwargs["data"] = JsonPayload(json, dumps=self._json_serialize)
+        if (json_data := kwargs.pop("json", None)) is not None:
+            kwargs["data"] = JsonPayload(json_data, dumps=self._json_serialize)
 
         drop_kwargs = ("allow_redirects",)
 
         req = ClientRequest(
-            method=method,
-            url=url,
             loop=self._loop,
             response_class=self._response_class,
             session=self,
@@ -87,7 +81,7 @@ class CachedSession(ClientSession):
         response = await self._get_cached_response(req, repository=repository)
         self._log_cache_hit(request=req, response=response)
         if response is None:
-            response = await super().request(method=method, url=url, **kwargs)
+            response = await super().request(**kwargs)
 
         yield response
 

@@ -42,11 +42,10 @@ class ResponseRepositorySettings[V](metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def get_key(self, **kwargs: Unpack[RequestKwargs]) -> tuple:
+    def get_key(self, **kwargs) -> tuple:
         """
         Extracts the name to assign to a cache entry in the repository from the given request kwargs.
 
-        Arguments passed through to `.aiohttp.ClientSession.request`.
         See aiohttp reference for more info on available kwargs:
         https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request
         """

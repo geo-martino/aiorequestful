@@ -28,7 +28,7 @@ from aiorequestful.response.payload import StringPayloadHandler, PayloadHandler
 from aiorequestful.response.status import StatusHandler, ClientErrorStatusHandler, UnauthorisedStatusHandler, \
     RateLimitStatusHandler
 from aiorequestful.timer import Timer
-from aiorequestful.types import URLInput, Headers, MethodInput, RequestKwargs
+from aiorequestful.types import URLInput, Headers, RequestKwargs
 
 _DEFAULT_RESPONSE_HANDLERS = [
     UnauthorisedStatusHandler(), RateLimitStatusHandler(), ClientErrorStatusHandler()
@@ -237,13 +237,13 @@ class RequestHandler[A: Authoriser, P: Any]:
 
         self.logger.log(level=level, msg=format_url_log(method=method, url=url, messages=log))
 
-    async def request(self, method: MethodInput, url: URLInput, **kwargs: Unpack[RequestKwargs]) -> P:
+    async def request(self, **kwargs: Unpack[RequestKwargs]) -> P:
         """
         Generic method for handling HTTP requests handling errors, authorisation, backoff, caching etc. as configured.
-        See :py:func:`request` for more arguments.
 
-        :param method: HTTP request method (such as GET, POST, PUT, etc.)
-        :param url: The URL to perform the request on.
+        See aiohttp reference for more info on available kwargs:
+        https://docs.aiohttp.org/en/stable/client_reference.html#aiohttp.ClientSession.request
+
         :return: The JSON formatted response or, if JSON formatting not possible, the text response.
         :raise RequestError: For any request which fails.
         :raise ResponseError: For any request which returns an invalid response.
@@ -255,11 +255,13 @@ class RequestHandler[A: Authoriser, P: Any]:
                 "Enter the RequestHandler's context to start a new session."
             )
 
-        method = HTTPMethod(method.upper())
+        kwargs["method"] = HTTPMethod(kwargs["method"].upper())
+        method = kwargs["method"]
+        url = kwargs["url"]
         retry_timer = self.retry_timer
 
         while True:
-            async with self._request(method=method, url=url, **kwargs) as response:
+            async with self._request(**kwargs) as response:
                 if response is None or isinstance(response, Exception):
                     try:
                         await self._handle_retry_timer(method=method, url=url, timer=retry_timer)
@@ -374,38 +376,38 @@ class RequestHandler[A: Authoriser, P: Any]:
     async def get(self, url: URLInput, **kwargs) -> P:
         """Sends a GET request."""
         kwargs.pop("method", None)
-        return await self.request("get", url=url, **kwargs)
+        return await self.request(method="get", url=url, **kwargs)
 
     async def post(self, url: URLInput, **kwargs) -> P:
         """Sends a POST request."""
         kwargs.pop("method", None)
-        return await self.request("post", url=url, **kwargs)
+        return await self.request(method="post", url=url, **kwargs)
 
     async def put(self, url: URLInput, **kwargs) -> P:
         """Sends a PUT request."""
         kwargs.pop("method", None)
-        return await self.request("put", url=url, **kwargs)
+        return await self.request(method="put", url=url, **kwargs)
 
     async def delete(self, url: URLInput, **kwargs) -> P:
         """Sends a DELETE request."""
         kwargs.pop("method", None)
-        return await self.request("delete", url, **kwargs)
+        return await self.request(method="delete", url=url, **kwargs)
 
     async def options(self, url: URLInput, **kwargs) -> P:
         """Sends an OPTIONS request."""
         kwargs.pop("method", None)
-        return await self.request("options", url=url, **kwargs)
+        return await self.request(method="options", url=url, **kwargs)
 
     async def head(self, url: URLInput, **kwargs) -> P:
         """Sends a HEAD request."""
         kwargs.pop("method", None)
         kwargs.setdefault("allow_redirects", False)
-        return await self.request("head", url=url, **kwargs)
+        return await self.request(method="head", url=url, **kwargs)
 
     async def patch(self, url: URLInput, **kwargs) -> P:
         """Sends a PATCH request."""
         kwargs.pop("method", None)
-        return await self.request("patch", url=url, **kwargs)
+        return await self.request(method="patch", url=url, **kwargs)
 
     def __copy__(self):
         """Do not copy handler"""

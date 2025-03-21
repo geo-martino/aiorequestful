@@ -1,8 +1,9 @@
-from typing import Any
+from typing import Any, Unpack
 
 from yarl import URL
 
 from aiorequestful.cache.backend.base import ResponseRepositorySettings
+from aiorequestful.types import RequestKwargs
 
 
 class MockResponseRepositorySettings[V: Any](ResponseRepositorySettings[V]):
