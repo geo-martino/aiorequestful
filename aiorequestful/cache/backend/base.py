@@ -7,7 +7,7 @@ from abc import ABCMeta, abstractmethod
 from collections.abc import MutableMapping, Callable, Collection, AsyncIterable, Mapping, Generator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Self, Unpack
+from typing import Any, Self
 
 from aiohttp import RequestInfo, ClientRequest, ClientResponse
 from dateutil.relativedelta import relativedelta
@@ -16,7 +16,7 @@ from aiorequestful._utils import get_iterator, classproperty
 from aiorequestful.cache.exception import CacheError
 from aiorequestful.response.exception import PayloadHandlerError
 from aiorequestful.response.payload import PayloadHandler, StringPayloadHandler
-from aiorequestful.types import UnitCollection, URLInput, RequestKwargs
+from aiorequestful.types import UnitCollection, URLInput
 
 type CacheRequestType = RequestInfo | ClientRequest | ClientResponse
 type RepositoryRequestType[K] = K | CacheRequestType

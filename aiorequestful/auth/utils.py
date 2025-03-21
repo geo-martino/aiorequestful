@@ -17,8 +17,7 @@ from aiohttp import ClientSession, ClientResponse
 from yarl import URL
 
 from aiorequestful.auth.exception import AuthoriserError
-from aiorequestful.types import MethodInput, URLInput, Headers, ImmutableHeaders, MutableJSON, ImmutableJSON, \
-    JSON, RequestKwargs
+from aiorequestful.types import Headers, ImmutableHeaders, MutableJSON, ImmutableJSON, JSON, RequestKwargs
 
 
 class AuthRequest:
