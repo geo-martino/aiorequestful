@@ -32,6 +32,15 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
 
+1.0.16
+======
+
+Fixed
+-----
+* Bug causing default response handlers to not be set on :py:class:`.RequestHandler` when not provided.
+  Default response handlers are now set as expected in this case.
+
+
 1.0.15
 ======
 

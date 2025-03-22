@@ -124,7 +124,7 @@ class RequestHandler[A: Authoriser, P: Any]:
             authoriser: A | None = None,
             cache: ResponseCache | None = None,
             payload_handler: PayloadHandler[P] = None,
-            response_handlers: Sequence[StatusHandler] = (),
+            response_handlers: Sequence[StatusHandler] = None,
             wait_timer: Timer = None,
             retry_timer: Timer = None,
             **session_kwargs
@@ -150,7 +150,7 @@ class RequestHandler[A: Authoriser, P: Any]:
             connector: Callable[[], aiohttp.ClientSession],
             authoriser: A | None = None,
             payload_handler: PayloadHandler = None,
-            response_handlers: Sequence[StatusHandler] = (),
+            response_handlers: Sequence[StatusHandler] = None,
             wait_timer: Timer = None,
             retry_timer: Timer = None,
     ):

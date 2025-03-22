@@ -50,6 +50,7 @@ class TestRequestHandler:
             authoriser=authoriser,
             cache=cache,
             headers={"Content-Type": "application/json"},
+            response_handlers=(),
             payload_handler=JSONPayloadHandler(),
         )
 
