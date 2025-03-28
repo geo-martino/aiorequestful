@@ -16,8 +16,14 @@ class ResponseError(HTTPError):
     def __init__(self, message: str = None, response: ClientResponse | None = None):
         self.message = message
         self.response = response
-        formatted = f"Status code: {response.status} | {message}" if response else message
-        super().__init__(formatted)
+
+        log_parts = [
+            f"Status code: {response.status}" if response else None,
+            message if message else None,
+            f"Response: {response.text(errors="ignore")}" if response else None,
+        ]
+
+        super().__init__(" | ".join(log_parts))
 
 
 class PayloadHandlerError(AIORequestfulError):
