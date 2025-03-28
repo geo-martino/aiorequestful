@@ -23,7 +23,7 @@ class ResponseError(HTTPError):
             f"Response: {response.text(errors="ignore")}" if response else None,
         ]
 
-        super().__init__(" | ".join(log_parts))
+        super().__init__(" | ".join(part for part in log_parts if part))
 
 
 class PayloadHandlerError(AIORequestfulError):
