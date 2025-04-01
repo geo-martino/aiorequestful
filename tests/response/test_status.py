@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from copy import copy
 from http import HTTPStatus
 from random import choice
+from unittest import mock
 
 import pytest
 from aiohttp import ClientResponse, ClientSession, ClientRequest

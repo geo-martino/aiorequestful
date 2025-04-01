@@ -5,6 +5,7 @@ import shutil
 from asyncio import StreamReader
 from http import HTTPMethod
 from pathlib import Path
+from unittest import mock
 
 import pytest
 import yaml
@@ -112,5 +113,7 @@ def dummy_response(dummy_request: ClientRequest) -> ClientResponse:
 
     # noinspection PyProtectedMember
     resp.content = StreamReader(loop=resp._loop)
+    resp.content.feed_data("response text".encode())
+    resp.content.feed_eof()
 
     return resp

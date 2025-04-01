@@ -1,5 +1,6 @@
 import json
 from abc import ABC, abstractmethod
+from asyncio import StreamReader
 from typing import Any
 
 import pytest
@@ -30,6 +31,8 @@ class PayloadHandlerTester(ABC):
 
     @pytest.fixture
     def response(self, dummy_response: ClientResponse, payload_encoded: bytes) -> ClientResponse:
+        # noinspection PyProtectedMember
+        dummy_response.content = StreamReader(loop=dummy_response._loop)
         dummy_response.content.feed_data(payload_encoded)
         dummy_response.content.feed_eof()
         return dummy_response
