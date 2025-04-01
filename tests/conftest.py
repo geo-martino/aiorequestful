@@ -5,7 +5,6 @@ import shutil
 from asyncio import StreamReader
 from http import HTTPMethod
 from pathlib import Path
-from unittest import mock
 
 import pytest
 import yaml
