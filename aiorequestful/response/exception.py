@@ -20,7 +20,6 @@ class ResponseError(HTTPError):
         log_parts = [
             f"Status code: {response.status}" if response else None,
             message if message else None,
-            f"Response: {response.text(errors="ignore")}" if response else None,
         ]
 
         super().__init__(" | ".join(part for part in log_parts if part))

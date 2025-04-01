@@ -90,7 +90,7 @@ class ClientErrorStatusHandler(StatusHandler):
         self.match(response=response, fail_on_error=True)
 
         self._log(response=response, message="Bad response received and cannot handle or continue processing.")
-        raise ResponseError(response=response)
+        raise ResponseError(message=await response.text(errors="ignore"), response=response)
 
 
 class UnauthorisedStatusHandler(StatusHandler):
