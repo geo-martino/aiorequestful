@@ -229,7 +229,7 @@ class TestRequestHandler:
             self, request_handler: RequestHandler, url: URL, dummy_response: ClientResponse
     ):
         # should always raise an error based on the response
-        with pytest.raises(RequestError, match=f"Max retries exceeded"):
+        with pytest.raises(RequestError, match="Max retries exceeded"):
             await request_handler._retry(None, method=HTTPMethod.GET, url=url, timer=None)
         with pytest.raises(IOError):
             await request_handler._retry(IOError(), method=HTTPMethod.GET, url=url, timer=None)
