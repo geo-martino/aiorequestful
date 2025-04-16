@@ -24,6 +24,7 @@ from aiorequestful.auth import Authoriser
 from aiorequestful.cache.backend import ResponseCache
 from aiorequestful.cache.session import CachedSession
 from aiorequestful.exception import RequestError
+from aiorequestful.response.exception import ResponseError
 from aiorequestful.response.payload import StringPayloadHandler, PayloadHandler
 from aiorequestful.response.status import StatusHandler, ClientErrorStatusHandler, UnauthorisedStatusHandler, \
     RateLimitStatusHandler
@@ -263,21 +264,16 @@ class RequestHandler[A: Authoriser, P: Any]:
         while True:
             async with self._request(**kwargs) as response:
                 if response is None or isinstance(response, Exception):
-                    try:
-                        await self._handle_retry_timer(method=method, url=url, timer=retry_timer)
-                    except RequestError as ex:
-                        raise response if isinstance(response, Exception) else ex
+                    pass
+                elif await self._handle_response(response, retry_timer=retry_timer):
                     continue
-
-                if await self._handle_response(response, retry_timer=retry_timer):
-                    continue
-
-                if response.ok:
+                elif response.ok:
                     payload: P = await self.payload_handler(response)
                     break
 
-                await self._log_response(response=response, method=method, url=url)
-                await self._handle_retry_timer(method=method, url=url, timer=retry_timer)
+                if isinstance(response, aiohttp.ClientResponse):
+                    await self._log_response(response=response, method=method, url=url)
+                await self._retry(response=response, method=method, url=url, timer=retry_timer)
 
         self._retry_logged = False
         return payload
@@ -353,6 +349,22 @@ class RequestHandler[A: Authoriser, P: Any]:
             wait_timer=self.wait_timer,
             retry_timer=retry_timer,
         )
+
+    async def _retry(
+            self,
+            response: aiohttp.ClientResponse | Exception | None,
+            method: HTTPMethod,
+            url: URLInput,
+            timer: Timer | None
+    ) -> None:
+        try:
+            await self._handle_retry_timer(method=method, url=url, timer=timer)
+        except RequestError as ex:
+            if response is None:
+                raise ex
+            elif isinstance(response, Exception):
+                raise response
+            raise ResponseError(message=await response.text(errors="ignore"), response=response)
 
     async def _handle_retry_timer(self, method: HTTPMethod, url: URLInput, timer: Timer | None) -> None:
         if timer is None or not timer.can_increase:

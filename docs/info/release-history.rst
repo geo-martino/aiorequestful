@@ -32,6 +32,15 @@ The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
 
+1.0.19
+======
+
+Fixed
+-----
+* Improve request retry flow to log on all status codes if retry attempts fail.
+  This was previously only logging if a status code handler was configured for that status code.
+
+
 1.0.18
 ======
 

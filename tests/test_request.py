@@ -76,9 +76,9 @@ class TestRequestHandler:
         )
 
     @pytest.fixture
-    def mock_handle_retry_timer(self, mocker: MockerFixture) -> AsyncMock:
+    def mock_retry(self, mocker: MockerFixture) -> AsyncMock:
         return mocker.patch.object(
-            RequestHandler, attribute="_handle_retry_timer", side_effect=AsyncMock,
+            RequestHandler, attribute="_retry", side_effect=AsyncMock,
         )
 
     async def test_init(self, token: dict[str, Any], authoriser: Authoriser, cache: ResponseCache):
@@ -145,7 +145,11 @@ class TestRequestHandler:
         assert actual_kwargs == valid_kwargs
 
     async def test_uses_unique_retry_timer(
-            self, request_handler: RequestHandler, url: URL, mocker: MockerFixture, requests_mock: aioresponses
+            self,
+            request_handler: RequestHandler,
+            url: URL,
+            mock_retry: AsyncMock,
+            requests_mock: aioresponses,
     ):
         request_handler.retry_timer = StepCountTimer(initial=0.1, count=3, step=0.1)
         request_handler._retry_timer.increase()
@@ -155,21 +159,19 @@ class TestRequestHandler:
         assert id(timer_new) != id(request_handler._retry_timer)
         assert float(timer_new) == timer_new.initial != float(request_handler._retry_timer)
 
-        def _handle_retry_timer(*_, timer: Timer | None, **__) -> None:
+        def _retry(*_, timer: Timer | None, **__) -> None:
             if timer is None or not timer.can_increase or timer == 0:
                 raise RequestError("Max retries exceeded")
             timer.increase()
 
         requests_mock.get(url, status=400, payload={"key": "value"}, repeat=True)
-        mock_handle_retry_timer = mocker.patch.object(
-            RequestHandler,  attribute="_handle_retry_timer", side_effect=_handle_retry_timer, new_callable=AsyncMock
-        )
+        mock_retry.side_effect = _retry
 
         async with request_handler as handler:
             with pytest.raises(RequestError, match="Max retries exceeded"):
                 await handler.request(method=HTTPMethod.GET, url=url)
 
-            timer_call = mock_handle_retry_timer.call_args.kwargs["timer"]
+            timer_call = mock_retry.call_args.kwargs["timer"]
             assert id(timer_call) != id(request_handler._retry_timer) != id(request_handler.retry_timer)
             assert timer_call == timer_call.final
 
@@ -223,13 +225,31 @@ class TestRequestHandler:
                 assert await response.json() == expected_json
             assert sum(map(len, requests_mock.requests.values())) == 3
 
+    async def test_retry_on_max_retries_reached(
+            self, request_handler: RequestHandler, url: URL, dummy_response: ClientResponse
+    ):
+        # should always raise an error based on the response
+        with pytest.raises(RequestError, match=f"Max retries exceeded"):
+            await request_handler._retry(None, method=HTTPMethod.GET, url=url, timer=None)
+        with pytest.raises(IOError):
+            await request_handler._retry(IOError(), method=HTTPMethod.GET, url=url, timer=None)
+        with pytest.raises(ResponseError, match=f"Status code: {dummy_response.status}"):
+            await request_handler._retry(dummy_response, method=HTTPMethod.GET, url=url, timer=None)
+
+        retry_timer = StepCountTimer(initial=0.1, count=2, step=0.1)
+        retry_timer.increase()
+        retry_timer.increase()
+
+        with pytest.raises(IOError):
+            await request_handler._retry(IOError(), method=HTTPMethod.GET, url=url, timer=retry_timer)
+
     async def test_request_with_valid_response(
             self,
             request_handler: RequestHandler,
             url: URL,
             mock_handle_response: AsyncMock,
             mock_log_response: AsyncMock,
-            mock_handle_retry_timer: AsyncMock,
+            mock_retry: AsyncMock,
             requests_mock: aioresponses,
     ):
         expected_json = {"key": "value"}
@@ -242,7 +262,7 @@ class TestRequestHandler:
 
         mock_handle_response.assert_called_once()
         mock_log_response.assert_not_called()
-        mock_handle_retry_timer.assert_not_called()
+        mock_retry.assert_not_called()
 
         async with request_handler as handler:
             handler.payload_handler = JSONPayloadHandler()
@@ -294,21 +314,21 @@ class TestRequestHandler:
         mock_handle_response.assert_called_once()
         mock_log_response.assert_not_called()
 
-    async def test_request_logs_and_handles_retry_timer(
+    async def test_request_logs_and_retries(
             self,
             request_handler: RequestHandler,
             url: URL,
             mock_handle_response: AsyncMock,
             mock_log_response: AsyncMock,
-            mock_handle_retry_timer: AsyncMock,
+            mock_retry: AsyncMock,
             requests_mock: aioresponses,
     ):
-        def _handle_retry_timer(*_, **__) -> None:
+        def _retry(*_, **__) -> None:
             raise RequestError("Max retries exceeded")
 
         requests_mock.get(url, status=400, repeat=True)
-        mock_handle_retry_timer.new_callable = AsyncMock
-        mock_handle_retry_timer.side_effect = _handle_retry_timer
+        mock_retry.new_callable = AsyncMock
+        mock_retry.side_effect = _retry
 
         async with request_handler as handler:
             with pytest.raises(RequestError, match="Max retries exceeded"):
@@ -316,7 +336,7 @@ class TestRequestHandler:
 
         mock_handle_response.assert_called_once()
         mock_log_response.assert_called_once()
-        mock_handle_retry_timer.assert_called_once()
+        mock_retry.assert_called_once()
 
     async def test_request_fails(
             self,
