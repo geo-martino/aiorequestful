@@ -31,6 +31,14 @@ Release History
 The format is based on `Keep a Changelog <https://keepachangelog.com/en>`_,
 and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_
 
+1.0.20
+======
+
+Fixed
+-----
+* Fix bug in :py:class:`.RequestHandler` where the kwargs for non-cached sessions
+  were not being removed from the request. This was causing some requests to fail on non-cached sessions.
+
 
 1.0.19
 ======

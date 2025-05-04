@@ -311,10 +311,9 @@ class RequestHandler[A: Authoriser, P: Any]:
             if self.wait_timer is not None:
                 await self.wait_timer
 
-    @staticmethod
-    def _clean_requests_kwargs(kwargs: dict[str, Any]) -> None:
+    def _clean_requests_kwargs(self, kwargs: dict[str, Any]) -> None:
         """Clean ``kwargs`` by removing any kwarg not in the signature of the :py:meth:`aiohttp.request` method."""
-        params = set(inspect.signature(CachedSession.request).parameters) | set(RequestKwargs.__annotations__)
+        params = set(inspect.signature(self._session.request).parameters) | set(RequestKwargs.__annotations__)
         for key in list(kwargs):
             if key not in params:
                 kwargs.pop(key)
